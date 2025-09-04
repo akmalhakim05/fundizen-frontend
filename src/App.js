@@ -6,6 +6,7 @@ import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import Dashboard from './components/Dashboard';
 import CampaignList from './components/campaigns/CampaignList';
+import CreateCampaign from './components/campaigns/CreateCampaign';
 import PrivateRoute from './components/auth/PrivateRoute';
 import './styles/global.css';
 
@@ -116,6 +117,14 @@ function App() {
                 element={
                   <PrivateRoute>
                     <Dashboard />
+                  </PrivateRoute>
+                } 
+              />
+              <Route 
+                path="/create-campaign" 
+                element={
+                  <PrivateRoute>
+                    <CreateCampaign />
                   </PrivateRoute>
                 } 
               />

@@ -1,0 +1,259 @@
+.file-upload-container {
+  width: 100%;
+  margin: 20px 0;
+}
+
+.file-upload-area {
+  border: 2px dashed #e1e5e9;
+  border-radius: 12px;
+  padding: 30px 20px;
+  text-align: center;
+  background: #fafbfc;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.file-upload-area:hover {
+  border-color: #007bff;
+  background: #f8f9ff;
+}
+
+.file-upload-area.drag-active {
+  border-color: #007bff;
+  background: #e7f1ff;
+  transform: scale(1.02);
+}
+
+.file-upload-area.uploading {
+  border-color: #28a745;
+  background: #f8fff8;
+  cursor: not-allowed;
+}
+
+.file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.file-upload-label {
+  display: block;
+  cursor: pointer;
+  width: 100%;
+}
+
+.file-upload-area.uploading .file-upload-label {
+  cursor: not-allowed;
+}
+
+.upload-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.upload-icon {
+  font-size: 3rem;
+  opacity: 0.7;
+}
+
+.upload-text {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.upload-text strong {
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.upload-text span {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.upload-info {
+  color: #999;
+  font-size: 0.8rem;
+}
+
+.upload-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.upload-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.upload-progress span {
+  font-weight: 500;
+  color: #007bff;
+}
+
+.progress-bar {
+  width: 200px;
+  height: 6px;
+  background: #e9ecef;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #007bff 0%, #28a745 100%);
+  transition: width 0.3s ease;
+}
+
+/* File Preview Component */
+.file-preview {
+  margin-top: 15px;
+  padding: 15px;
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+}
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.preview-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.preview-icon {
+  font-size: 1.5rem;
+}
+
+.preview-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.preview-name {
+  font-weight: 500;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.preview-size {
+  color: #666;
+  font-size: 0.8rem;
+}
+
+.preview-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.preview-btn {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.preview-btn.view {
+  background: #007bff;
+  color: white;
+}
+
+.preview-btn.view:hover {
+  background: #0056b3;
+}
+
+.preview-btn.delete {
+  background: #dc3545;
+  color: white;
+}
+
+.preview-btn.delete:hover {
+  background: #c82333;
+}
+
+.preview-image {
+  width: 100%;
+  max-width: 200px;
+  height: auto;
+  border-radius: 8px;
+  margin-top: 10px;
+}
+
+.upload-error {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 10px;
+  font-size: 0.9rem;
+  border: 1px solid #f5c6cb;
+}
+
+.upload-success {
+  background: #d4edda;
+  color: #155724;
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 10px;
+  font-size: 0.9rem;
+  border: 1px solid #c3e6cb;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .file-upload-area {
+    padding: 20px 15px;
+  }
+  
+  .upload-icon {
+    font-size: 2.5rem;
+  }
+  
+  .upload-text strong {
+    font-size: 1rem;
+  }
+  
+  .progress-bar {
+    width: 150px;
+  }
+  
+  .preview-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .preview-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
