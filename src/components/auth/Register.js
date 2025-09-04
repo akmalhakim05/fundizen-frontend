@@ -45,6 +45,12 @@ const Register = () => {
       return false;
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError('Please enter a valid email address');
+      return false;
+    }
+
     return true;
   };
 
@@ -62,24 +68,27 @@ const Register = () => {
     try {
       await register(formData.email, formData.password, formData.username);
       
-      setSuccess('Account created successfully! Please check your email to verify your account before logging in.');
+      setSuccess('Account created successfully! You can now login.');
       
-      // Redirect to login after 3 seconds
+      // Redirect to login after 2 seconds
       setTimeout(() => {
         navigate('/login');
-      }, 3000);
+      }, 2000);
       
     } catch (error) {
       console.error('Registration error:', error);
       
-      if (error.code === 'auth/email-already-in-use') {
-        setError('An account with this email already exists');
-      } else if (error.code === 'auth/invalid-email') {
-        setError('Invalid email address');
-      } else if (error.code === 'auth/weak-password') {
-        setError('Password is too weak');
+      // Handle different types of errors
+      if (error.error) {
+        setError(error.error);
+      } else if (error.errors && Array.isArray(error.errors)) {
+        setError(error.errors.join(', '));
+      } else if (error.message) {
+        setError(error.message);
+      } else if (typeof error === 'string') {
+        setError(error);
       } else {
-        setError(error.message || 'Registration failed. Please try again');
+        setError('Registration failed. Please try again.');
       }
     } finally {
       setLoading(false);

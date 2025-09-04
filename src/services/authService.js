@@ -12,12 +12,17 @@ export const authService = {
   },
 
   // Login user in backend
-  login: async (idToken) => {
+  login: async (usernameOrEmail, password) => {
     try {
-      const response = await api.post('/auth/login', { idToken });
+      const response = await api.post('/auth/login', { 
+        usernameOrEmail, 
+        password 
+      });
       
-      // Store token for future requests
-      localStorage.setItem('authToken', idToken);
+      // Store user data for future requests
+      if (response.data.user) {
+        localStorage.setItem('userData', JSON.stringify(response.data.user));
+      }
       
       return response.data;
     } catch (error) {
@@ -25,25 +30,24 @@ export const authService = {
     }
   },
 
-  // Verify token with backend
-  verifyToken: async (idToken) => {
+  // Get current user from localStorage
+  getCurrentUser: () => {
     try {
-      const response = await api.post('/auth/login', { idToken });
-      
-      // Store token for future requests
-      localStorage.setItem('authToken', idToken);
-      
-      return response.data;
+      const userData = localStorage.getItem('userData');
+      return userData ? JSON.parse(userData) : null;
     } catch (error) {
-      // Don't throw error for token verification failures
-      console.error('Token verification failed:', error);
-      localStorage.removeItem('authToken');
+      console.error('Error getting current user:', error);
       return null;
     }
   },
 
   // Logout (clear local storage)
   logout: () => {
-    localStorage.removeItem('authToken');
+    localStorage.removeItem('userData');
+  },
+
+  // Check if user is logged in
+  isAuthenticated: () => {
+    return localStorage.getItem('userData') !== null;
   }
 };

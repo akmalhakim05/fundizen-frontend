@@ -38,16 +38,15 @@ const Login = () => {
     } catch (error) {
       console.error('Login error:', error);
       
-      if (error.code === 'auth/user-not-found') {
-        setError('No account found with this email');
-      } else if (error.code === 'auth/wrong-password') {
-        setError('Incorrect password');
-      } else if (error.code === 'auth/invalid-email') {
-        setError('Invalid email address');
-      } else if (error.code === 'auth/too-many-requests') {
-        setError('Too many failed attempts. Please try again later');
+      // Handle different types of errors
+      if (error.error) {
+        setError(error.error);
+      } else if (error.message) {
+        setError(error.message);
+      } else if (typeof error === 'string') {
+        setError(error);
       } else {
-        setError(error.message || 'Login failed. Please try again');
+        setError('Login failed. Please check your credentials and try again.');
       }
     } finally {
       setLoading(false);
@@ -63,14 +62,14 @@ const Login = () => {
         
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="email">Email or Username</label>
             <input
-              type="email"
+              type="text"
               id="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="Enter your email"
+              placeholder="Enter your email or username"
               required
             />
           </div>
