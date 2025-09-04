@@ -1,0 +1,297 @@
+/* src/styles/components/EmailVerification.css */
+.email-verification-container {
+  min-height: 80vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.verification-card {
+  background: white;
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 500px;
+  text-align: center;
+}
+
+.verification-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  display: block;
+}
+
+.verification-icon.success {
+  animation: bounceIn 0.6s ease-out;
+}
+
+.verification-icon.pending {
+  animation: pulse 2s infinite;
+}
+
+.verification-icon.error {
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes bounceIn {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-5px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(5px);
+  }
+}
+
+.verification-success h2,
+.verification-pending h2,
+.verification-error h2 {
+  color: #333;
+  margin-bottom: 15px;
+  font-size: 1.75rem;
+  font-weight: 600;
+}
+
+.verification-success p,
+.verification-pending p,
+.verification-error p {
+  color: #666;
+  margin-bottom: 20px;
+  line-height: 1.6;
+  font-size: 1rem;
+}
+
+.verification-success strong,
+.verification-pending strong {
+  color: #007bff;
+  font-weight: 600;
+}
+
+.verification-instructions {
+  background: #f8f9fa;
+  padding: 25px;
+  border-radius: 12px;
+  margin: 25px 0;
+  border-left: 4px solid #007bff;
+  text-align: left;
+}
+
+.verification-instructions h3 {
+  color: #333;
+  font-size: 1.1rem;
+  margin-bottom: 15px;
+  font-weight: 600;
+}
+
+.verification-instructions ol {
+  margin: 0 0 20px 0;
+  padding-left: 20px;
+}
+
+.verification-instructions ol li {
+  color: #555;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.help-text {
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.help-text p {
+  color: #666;
+  font-weight: 600;
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+}
+
+.help-text ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.help-text ul li {
+  color: #666;
+  font-size: 0.85rem;
+  margin-bottom: 5px;
+  line-height: 1.4;
+}
+
+.verification-actions {
+  display: flex;
+  gap: 15px;
+  margin: 25px 0;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.verification-actions .btn {
+  min-width: 140px;
+  padding: 12px 20px;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.verification-actions .btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.verification-actions .btn:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.error-message {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 15px 20px;
+  border-radius: 8px;
+  margin: 20px 0;
+  border: 1px solid #f5c6cb;
+  font-weight: 500;
+  text-align: center;
+}
+
+.success-message {
+  background: #d4edda;
+  color: #155724;
+  padding: 15px 20px;
+  border-radius: 8px;
+  margin: 20px 0;
+  border: 1px solid #c3e6cb;
+  font-weight: 500;
+  text-align: center;
+}
+
+.verification-footer {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #e9ecef;
+}
+
+.verification-footer p {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.verification-footer a {
+  color: #007bff;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.verification-footer a:hover {
+  text-decoration: underline;
+}
+
+/* Loading states */
+.verification-card .loading-container {
+  padding: 40px 20px;
+}
+
+.verification-card .loading-spinner {
+  margin-bottom: 15px;
+}
+
+.verification-card .spinner {
+  margin: 0 auto;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+  .email-verification-container {
+    padding: 20px 15px;
+  }
+  
+  .verification-card {
+    padding: 30px 20px;
+  }
+  
+  .verification-icon {
+    font-size: 3rem;
+  }
+  
+  .verification-success h2,
+  .verification-pending h2,
+  .verification-error h2 {
+    font-size: 1.5rem;
+  }
+  
+  .verification-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .verification-actions .btn {
+    min-width: auto;
+    width: 100%;
+  }
+  
+  .verification-instructions {
+    padding: 20px;
+    text-align: center;
+  }
+  
+  .verification-instructions ol {
+    text-align: left;
+    display: inline-block;
+  }
+}
+
+@media (max-width: 480px) {
+  .verification-card {
+    padding: 25px 15px;
+  }
+  
+  .verification-instructions {
+    padding: 15px;
+  }
+  
+  .help-text {
+    padding: 12px;
+  }
+}

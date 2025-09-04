@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import Header from './components/layout/Header';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
+import EmailVerification from './components/auth/EmailVerification';
 import Dashboard from './components/Dashboard';
 import CampaignList from './components/campaigns/CampaignList';
 import CreateCampaign from './components/campaigns/CreateCampaign';
@@ -112,6 +113,7 @@ function App() {
               <Route path="/contact" element={<Contact />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/verify-email" element={<EmailVerification />} />
               <Route 
                 path="/dashboard" 
                 element={

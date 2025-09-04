@@ -66,14 +66,32 @@ const Register = () => {
     setSuccess('');
 
     try {
-      await register(formData.email, formData.password, formData.username);
+      const response = await register(formData.email, formData.password, formData.username);
       
-      setSuccess('Account created successfully! You can now login.');
-      
-      // Redirect to login after 2 seconds
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
+      // Check if email verification is required
+      if (response.requiresEmailVerification) {
+        setSuccess(response.message);
+        
+        // Navigate to email verification page with registration data
+        setTimeout(() => {
+          navigate('/verify-email', {
+            state: {
+              registrationData: {
+                username: formData.username,
+                email: formData.email,
+                password: formData.password
+              }
+            }
+          });
+        }, 2000);
+      } else {
+        // This shouldn't happen with the new flow, but handle it just in case
+        setSuccess('Account created successfully! You can now login.');
+        
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+      }
       
     } catch (error) {
       console.error('Registration error:', error);
@@ -164,6 +182,13 @@ const Register = () => {
             {loading ? 'Creating Account...' : 'Sign Up'}
           </button>
         </form>
+        
+        <div className="auth-notice">
+          <p>
+            <strong>📧 Email Verification Required</strong><br />
+            After signing up, you'll need to verify your email address before you can access your account.
+          </p>
+        </div>
         
         <p className="auth-link">
           Already have an account? <Link to="/login">Login here</Link>
