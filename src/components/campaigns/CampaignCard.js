@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import OptimizedImage from '../common/OptimizedImage';
 import '../../styles/components/Campaign.css';
 
 const CampaignCard = ({ campaign }) => {
@@ -35,23 +34,18 @@ const CampaignCard = ({ campaign }) => {
     <div className="campaign-card">
       <div className="campaign-image">
         {campaign.imageUrl ? (
-          <OptimizedImage
+          <img
             src={campaign.imageUrl}
             alt={campaign.name}
-            width={350}
-            height={200}
-            crop="fill"
-            fallback={
-              <div className="no-image">
-                <span>No Image</span>
-              </div>
-            }
+            onError={(e) => {
+              e.target.style.display = 'none';
+              e.target.nextElementSibling.style.display = 'flex';
+            }}
           />
-        ) : (
-          <div className="no-image">
-            <span>No Image</span>
-          </div>
-        )}
+        ) : null}
+        <div className="no-image" style={{ display: campaign.imageUrl ? 'none' : 'flex' }}>
+          <span>No Image</span>
+        </div>
         <div className={`status-badge ${getStatusBadge()}`}>
           {getStatusBadge()}
         </div>
