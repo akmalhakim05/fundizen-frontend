@@ -1,3 +1,4 @@
+// src/components/campaigns/CreateCampaign.js - Fixed validation and submission
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -37,6 +38,8 @@ const CreateCampaign = () => {
       ...formData,
       [e.target.name]: e.target.value
     });
+    // Clear errors when user starts typing
+    if (error) setError('');
   };
 
   const handleImageUpload = (url, response) => {
@@ -60,8 +63,17 @@ const CreateCampaign = () => {
   };
 
   const validateForm = () => {
+    // Reset error
+    setError('');
+
+    // Required field validation
     if (!formData.name.trim()) {
       setError('Campaign name is required');
+      return false;
+    }
+
+    if (formData.name.trim().length < 3 || formData.name.trim().length > 100) {
+      setError('Campaign name must be between 3 and 100 characters');
       return false;
     }
 
@@ -75,8 +87,25 @@ const CreateCampaign = () => {
       return false;
     }
 
+    // Fix: Check description length (backend validation expects 10-2000 characters)
+    if (formData.description.trim().length < 10) {
+      setError('Description must be at least 10 characters long');
+      return false;
+    }
+
+    if (formData.description.trim().length > 2000) {
+      setError('Description must not exceed 2000 characters');
+      return false;
+    }
+
     if (!formData.goalAmount || formData.goalAmount <= 0) {
       setError('Please enter a valid goal amount');
+      return false;
+    }
+
+    const goalAmount = parseFloat(formData.goalAmount);
+    if (goalAmount < 1 || goalAmount > 1000000) {
+      setError('Goal amount must be between RM 1.00 and RM 1,000,000');
       return false;
     }
 
@@ -93,8 +122,9 @@ const CreateCampaign = () => {
     const startDate = new Date(formData.startDate);
     const endDate = new Date(formData.endDate);
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     
-    if (startDate < today.setHours(0, 0, 0, 0)) {
+    if (startDate < today) {
       setError('Start date cannot be in the past');
       return false;
     }
@@ -115,13 +145,35 @@ const CreateCampaign = () => {
       return false;
     }
 
+    // Fix: Validate document URL if provided
+    if (formData.documentUrl && formData.documentUrl.trim()) {
+      const docUrlPattern = /^https?:\/\/.*\.(pdf|doc|docx)$/i;
+      if (!docUrlPattern.test(formData.documentUrl.trim())) {
+        setError('Document URL must be a valid HTTP/HTTPS URL ending with pdf, doc, or docx');
+        return false;
+      }
+    }
+
+    // Fix: Validate image URL if provided
+    if (formData.imageUrl && formData.imageUrl.trim()) {
+      const imgUrlPattern = /^https?:\/\/.*\.(jpg|jpeg|png|gif|webp)$/i;
+      if (!imgUrlPattern.test(formData.imageUrl.trim())) {
+        setError('Image URL must be a valid HTTP/HTTPS URL ending with jpg, jpeg, png, gif, or webp');
+        return false;
+      }
+    }
+
     return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    console.log('Form submission started');
+    console.log('Form data:', formData);
+
     if (!validateForm()) {
+      console.log('Validation failed:', error);
       return;
     }
 
@@ -130,13 +182,25 @@ const CreateCampaign = () => {
     setSuccess('');
 
     try {
+      // Clean and prepare data for submission
       const campaignData = {
-        ...formData,
+        name: formData.name.trim(),
+        category: formData.category,
+        description: formData.description.trim(),
         goalAmount: parseFloat(formData.goalAmount),
-        creatorId: currentUser.id || 'temp-id' // You might need to get this from your auth context
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        // Fix: Only include URLs if they are not empty strings
+        imageUrl: formData.imageUrl.trim() || null,
+        documentUrl: formData.documentUrl.trim() || null,
+        creatorId: currentUser?.id || 'temp-user-id' // Fallback for missing user ID
       };
 
+      console.log('Sending campaign data:', campaignData);
+
       const response = await campaignService.createCampaign(campaignData);
+      
+      console.log('Campaign created successfully:', response);
       
       setSuccess('Campaign created successfully! It will be reviewed by our team.');
       
@@ -161,7 +225,17 @@ const CreateCampaign = () => {
 
     } catch (error) {
       console.error('Create campaign error:', error);
-      setError(error.error || error.message || 'Failed to create campaign');
+      
+      // Handle validation errors from backend
+      if (error.errors && Array.isArray(error.errors)) {
+        setError(error.errors.join(', '));
+      } else if (error.error) {
+        setError(error.error);
+      } else if (error.message) {
+        setError(error.message);
+      } else {
+        setError('Failed to create campaign. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -206,6 +280,7 @@ const CreateCampaign = () => {
                 maxLength="100"
                 required
               />
+              <small>{formData.name.length}/100 characters</small>
             </div>
 
             <div className="form-group">
@@ -231,12 +306,15 @@ const CreateCampaign = () => {
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
-                placeholder="Describe your campaign, its goals, and why people should support it..."
+                placeholder="Describe your campaign, its goals, and why people should support it... (minimum 10 characters)"
                 rows="6"
                 maxLength="2000"
                 required
               />
-              <small>{formData.description.length}/2000 characters</small>
+              <small>
+                {formData.description.length}/2000 characters 
+                {formData.description.length < 10 && ' (minimum 10 required)'}
+              </small>
             </div>
           </div>
 
@@ -258,6 +336,7 @@ const CreateCampaign = () => {
                 step="0.01"
                 required
               />
+              <small>Amount between RM 1.00 and RM 1,000,000</small>
             </div>
 
             <div className="form-row">
@@ -294,7 +373,7 @@ const CreateCampaign = () => {
             <h3>Campaign Media</h3>
             
             <div className="upload-section">
-              <h4>Campaign Image</h4>
+              <h4>Campaign Image (Optional)</h4>
               <p>Upload a compelling image that represents your campaign</p>
               <FileUpload
                 type="image"
@@ -356,6 +435,7 @@ const CreateCampaign = () => {
               type="button" 
               className="btn btn-outline"
               onClick={() => navigate('/dashboard')}
+              disabled={loading}
             >
               Cancel
             </button>

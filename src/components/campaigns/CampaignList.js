@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import CampaignCard from './CampaignCard';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorMessage from '../common/ErrorMessage';
@@ -11,19 +11,31 @@ const CampaignList = () => {
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Ref to track if we've already fetched data
+  const hasFetched = useRef(false);
 
   useEffect(() => {
+    // Prevent duplicate calls in React Strict Mode
+    if (hasFetched.current) return;
+    
     fetchCampaigns();
+    hasFetched.current = true;
   }, []);
 
   const fetchCampaigns = async () => {
     try {
+      console.log('CampaignList: Fetching campaigns...');
       setLoading(true);
-      const data = await campaignService.getPublicCampaigns();
-      setCampaigns(data);
       setError('');
+      
+      const data = await campaignService.getPublicCampaigns();
+      
+      console.log('CampaignList: Received campaigns:', data);
+      setCampaigns(data || []);
+      
     } catch (error) {
-      console.error('Error fetching campaigns:', error);
+      console.error('CampaignList: Error fetching campaigns:', error);
       setError('Failed to load campaigns. Please try again later.');
     } finally {
       setLoading(false);
@@ -31,24 +43,37 @@ const CampaignList = () => {
   };
 
   const filteredCampaigns = campaigns.filter(campaign => {
-    const matchesSearch = campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         campaign.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = campaign.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         campaign.description?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesFilter = filter === 'all' || 
                          (filter === 'active' && campaign.isActive) ||
-                         (filter === 'category' && campaign.category === filter);
+                         (filter.startsWith('category-') && campaign.category === filter.substring(9));
     
     return matchesSearch && matchesFilter;
   });
 
-  const categories = [...new Set(campaigns.map(campaign => campaign.category))];
+  const categories = [...new Set(campaigns.map(campaign => campaign.category).filter(Boolean))];
+
+  const handleRetry = () => {
+    hasFetched.current = false;
+    fetchCampaigns();
+  };
 
   if (loading) {
-    return <LoadingSpinner />;
+    return (
+      <div className="campaign-list-container">
+        <LoadingSpinner message="Loading campaigns..." />
+      </div>
+    );
   }
 
   if (error) {
-    return <ErrorMessage message={error} onRetry={fetchCampaigns} />;
+    return (
+      <div className="campaign-list-container">
+        <ErrorMessage message={error} onRetry={handleRetry} />
+      </div>
+    );
   }
 
   return (
@@ -83,19 +108,21 @@ const CampaignList = () => {
           </button>
         </div>
         
-        <div className="category-filter">
-          <select 
-            value={filter.startsWith('category-') ? filter : 'all'} 
-            onChange={(e) => setFilter(e.target.value)}
-          >
-            <option value="all">All Categories</option>
-            {categories.map(category => (
-              <option key={category} value={`category-${category}`}>
-                {category}
-              </option>
-            ))}
-          </select>
-        </div>
+        {categories.length > 0 && (
+          <div className="category-filter">
+            <select 
+              value={filter.startsWith('category-') ? filter : 'all'} 
+              onChange={(e) => setFilter(e.target.value)}
+            >
+              <option value="all">All Categories</option>
+              {categories.map(category => (
+                <option key={category} value={`category-${category}`}>
+                  {category}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       <div className="campaign-stats">
@@ -125,13 +152,29 @@ const CampaignList = () => {
 
       {filteredCampaigns.length === 0 ? (
         <div className="no-campaigns">
-          <h3>No campaigns found</h3>
+          <h3>
+            {campaigns.length === 0 
+              ? 'No campaigns available' 
+              : 'No campaigns found'
+            }
+          </h3>
           <p>
-            {searchTerm 
-              ? `No campaigns match "${searchTerm}". Try adjusting your search.`
-              : 'No campaigns available at the moment. Check back later!'
+            {campaigns.length === 0 
+              ? 'Be the first to create a campaign and make a difference!'
+              : searchTerm 
+                ? `No campaigns match "${searchTerm}". Try adjusting your search.`
+                : 'No campaigns match the selected filters.'
             }
           </p>
+          {campaigns.length === 0 && (
+            <button 
+              className="btn btn-primary"
+              onClick={() => window.location.href = '/create-campaign'}
+              style={{ marginTop: '20px' }}
+            >
+              Create First Campaign
+            </button>
+          )}
         </div>
       ) : (
         <div className="campaigns-grid">
