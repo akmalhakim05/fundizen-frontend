@@ -8,6 +8,9 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
 
+  // Check if user is admin
+  const isAdmin = userData?.role === 'admin' || userData?.isAdmin;
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -55,6 +58,7 @@ const Header = () => {
                 <span className="user-name">
                   {userData?.username || currentUser.displayName || 'User'}
                 </span>
+                {isAdmin && <span className="admin-indicator">👑</span>}
                 <span className="dropdown-arrow">▼</span>
               </button>
 
@@ -72,11 +76,35 @@ const Header = () => {
                     <span className="dropdown-icon">📋</span>
                     My Campaigns
                   </Link>
+                  
+                  {/* Admin Section */}
+                  {isAdmin && (
+                    <>
+                      <hr className="dropdown-divider" />
+                      <div className="dropdown-section-title">
+                        <span className="dropdown-icon">👑</span>
+                        Admin Panel
+                      </div>
+                      <Link to="/admin" className="dropdown-item admin-item">
+                        <span className="dropdown-icon">📊</span>
+                        Admin Dashboard
+                      </Link>
+                      <Link to="/admin/campaigns" className="dropdown-item admin-item">
+                        <span className="dropdown-icon">📋</span>
+                        Manage Campaigns
+                      </Link>
+                      <Link to="/admin/users" className="dropdown-item admin-item">
+                        <span className="dropdown-icon">👥</span>
+                        Manage Users
+                      </Link>
+                    </>
+                  )}
+                  
+                  <hr className="dropdown-divider" />
                   <Link to="/profile" className="dropdown-item">
                     <span className="dropdown-icon">👤</span>
                     Profile Settings
                   </Link>
-                  <hr className="dropdown-divider" />
                   <button onClick={handleLogout} className="dropdown-item logout">
                     <span className="dropdown-icon">🚪</span>
                     Logout
@@ -113,6 +141,19 @@ const Header = () => {
               <hr className="mobile-nav-divider" />
               <Link to="/dashboard" className="mobile-nav-link">Dashboard</Link>
               <Link to="/create-campaign" className="mobile-nav-link">Create Campaign</Link>
+              
+              {/* Admin links for mobile */}
+              {isAdmin && (
+                <>
+                  <hr className="mobile-nav-divider" />
+                  <div className="mobile-nav-section-title">👑 Admin Panel</div>
+                  <Link to="/admin" className="mobile-nav-link admin-link">Admin Dashboard</Link>
+                  <Link to="/admin/campaigns" className="mobile-nav-link admin-link">Manage Campaigns</Link>
+                  <Link to="/admin/users" className="mobile-nav-link admin-link">Manage Users</Link>
+                </>
+              )}
+              
+              <hr className="mobile-nav-divider" />
               <Link to="/profile" className="mobile-nav-link">Profile</Link>
               <button onClick={handleLogout} className="mobile-nav-link logout">
                 Logout
