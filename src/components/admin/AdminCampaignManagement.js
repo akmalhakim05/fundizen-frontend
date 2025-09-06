@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { adminService } from '../../services/adminService';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorMessage from '../common/ErrorMessage';
-import OptimizedImage from '../common/OptimizedImage';
-import './AdminCampaignManagement.css';
+import '../../styles/components/AdminCampaignManagement.css';
 
 const AdminCampaignManagement = () => {
   const [campaigns, setCampaigns] = useState([]);
@@ -342,7 +341,7 @@ const CampaignCard = ({
       <div className="campaign-card-content">
         <div className="campaign-image-section">
           {campaign.imageUrl ? (
-            <OptimizedImage
+            <image
               src={campaign.imageUrl}
               alt={campaign.name}
               width={100}

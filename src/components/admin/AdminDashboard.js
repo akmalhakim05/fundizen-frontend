@@ -3,7 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorMessage from '../common/ErrorMessage';
 import { adminService } from '../../services/adminService';
-import './AdminDashboard.css';
+import '../../styles/components/AdminDashboard.css';
 
 const AdminDashboard = () => {
   const { currentUser, userData } = useAuth();

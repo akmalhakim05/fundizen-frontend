@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { adminService } from '../../services/adminService';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorMessage from '../common/ErrorMessage';
-import './AdminUserManagement.css';
+import '../../styles/components/AdminUserManagement.css';
 
 const AdminUserManagement = () => {
   const [users, setUsers] = useState([]);
