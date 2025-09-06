@@ -135,7 +135,7 @@
 }
 
 .campaign-image {
-  height: 200px;
+  height: 220px;
   position: relative;
   overflow: hidden;
 }
@@ -206,7 +206,7 @@
 }
 
 .campaign-title {
-  font-size: 1.25rem;
+  font-size: 1.35rem; /* ~22px */
   font-weight: 600;
   color: #333;
   margin: 0;
@@ -227,9 +227,9 @@
 
 .campaign-description {
   color: #666;
-  line-height: 1.6;
+  line-height: 1.7;
   margin-bottom: 20px;
-  font-size: 0.95rem;
+  font-size: 1rem;
 }
 
 .campaign-stats {
@@ -310,8 +310,9 @@
 
 .campaign-actions .btn {
   flex: 1;
-  padding: 10px 16px;
-  font-size: 14px;
+  padding: 12px 18px;
+  font-size: 15px;
+  border-radius: 10px;
 }
 
 .no-campaigns {
@@ -527,6 +528,16 @@
   border-bottom: none;
 }
 
+@media (min-width: 992px) {
+  .campaign-image {
+    height: 260px; /* lebih besar bila skrin besar */
+  }
+
+  .campaign-title {
+    font-size: 1.5rem; /* ~24px */
+  }
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .campaign-filters {
@@ -544,7 +555,7 @@
   }
   
   .campaigns-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   }
   
   .campaign-header {
@@ -569,5 +580,11 @@
   .profile-stats {
     flex-direction: column;
     gap: 15px;
+  }
+}
+
+@media (max-width: 576px) {
+  .campaign-image {
+    height: 180px; /* kecil sikit untuk mobile */
   }
 }
