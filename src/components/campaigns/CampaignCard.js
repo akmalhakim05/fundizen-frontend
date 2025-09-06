@@ -23,37 +23,69 @@ const CampaignCard = ({ campaign }) => {
     return Math.min((campaign.raisedAmount / campaign.goalAmount) * 100, 100);
   };
 
+  const getDaysRemaining = () => {
+    if (!campaign.endDate) return 0;
+    const endDate = new Date(campaign.endDate);
+    const today = new Date();
+    const diffTime = endDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(0, diffDays);
+  };
+
   const getStatusBadge = () => {
     if (!campaign.verified) return 'pending';
-    if (campaign.isActive) return 'active';
-    if (new Date(campaign.endDate) < new Date()) return 'expired';
-    return 'inactive';
+    if (!campaign.isActive) return 'inactive';
+    
+    const daysRemaining = getDaysRemaining();
+    if (daysRemaining <= 0) return 'expired';
+    
+    return 'active';
+  };
+
+  const getStatusLabel = () => {
+    const status = getStatusBadge();
+    switch (status) {
+      case 'pending': return 'Under Review';
+      case 'active': return 'Active';
+      case 'expired': return 'Ended';
+      case 'inactive': return 'Inactive';
+      default: return 'Unknown';
+    }
+  };
+
+  const canReceiveDonations = () => {
+    return campaign.verified && campaign.isActive && getDaysRemaining() > 0;
   };
 
   return (
     <div className="campaign-card">
-      <div className="campaign-image">
-        {campaign.imageUrl ? (
-          <img
-            src={campaign.imageUrl}
-            alt={campaign.name}
-            onError={(e) => {
-              e.target.style.display = 'none';
-              e.target.nextElementSibling.style.display = 'flex';
-            }}
-          />
-        ) : null}
-        <div className="no-image" style={{ display: campaign.imageUrl ? 'none' : 'flex' }}>
-          <span>No Image</span>
+      <Link to={`/campaign/${campaign.id}`} className="campaign-image-link">
+        <div className="campaign-image">
+          {campaign.imageUrl ? (
+            <img
+              src={campaign.imageUrl}
+              alt={campaign.name}
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.nextElementSibling.style.display = 'flex';
+              }}
+            />
+          ) : null}
+          <div className="no-image" style={{ display: campaign.imageUrl ? 'none' : 'flex' }}>
+            <span>📋</span>
+            <span>No Image</span>
+          </div>
+          <div className={`status-badge ${getStatusBadge()}`}>
+            {getStatusLabel()}
+          </div>
         </div>
-        <div className={`status-badge ${getStatusBadge()}`}>
-          {getStatusBadge()}
-        </div>
-      </div>
+      </Link>
       
       <div className="campaign-content">
         <div className="campaign-header">
-          <h3 className="campaign-title">{campaign.name}</h3>
+          <Link to={`/campaign/${campaign.id}`} className="campaign-title-link">
+            <h3 className="campaign-title">{campaign.name}</h3>
+          </Link>
           <span className="campaign-category">{campaign.category}</span>
         </div>
         
@@ -63,6 +95,11 @@ const CampaignCard = ({ campaign }) => {
             : campaign.description
           }
         </p>
+
+        <div className="campaign-creator">
+          <span className="creator-label">by</span>
+          <span className="creator-name">{campaign.creatorUsername || 'Anonymous'}</span>
+        </div>
         
         <div className="campaign-stats">
           <div className="funding-progress">
@@ -83,7 +120,7 @@ const CampaignCard = ({ campaign }) => {
             <div className="meta-item">
               <span className="label">Days Left:</span>
               <span className="value">
-                {campaign.daysRemaining > 0 ? `${campaign.daysRemaining} days` : 'Ended'}
+                {getDaysRemaining() > 0 ? `${getDaysRemaining()} days` : 'Ended'}
               </span>
             </div>
             <div className="meta-item">
@@ -98,12 +135,15 @@ const CampaignCard = ({ campaign }) => {
             to={`/campaign/${campaign.id}`} 
             className="btn btn-primary"
           >
-            View Details
+            👁️ View Details
           </Link>
-          {campaign.canReceiveDonations && (
-            <button className="btn btn-secondary">
-              Donate Now
-            </button>
+          {canReceiveDonations() && (
+            <Link 
+              to={`/campaign/${campaign.id}?action=donate`}
+              className="btn btn-secondary"
+            >
+              💝 Support Now
+            </Link>
           )}
         </div>
       </div>

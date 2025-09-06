@@ -1,0 +1,377 @@
+.campaign-image-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.campaign-title-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  transition: color 0.3s ease;
+}
+
+.campaign-title-link:hover {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.campaign-title-link:hover .campaign-title {
+  color: #007bff;
+}
+
+/* Enhanced Campaign Creator */
+.campaign-creator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 15px 0;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 3px solid #007bff;
+}
+
+.creator-label {
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.creator-name {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+/* Enhanced Status Badges */
+.status-badge.pending {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.9), rgba(255, 171, 0, 0.9));
+  color: #856404;
+  font-weight: 700;
+}
+
+.status-badge.active {
+  background: linear-gradient(135deg, rgba(40, 167, 69, 0.9), rgba(32, 201, 151, 0.9));
+  color: white;
+  font-weight: 700;
+}
+
+.status-badge.expired {
+  background: linear-gradient(135deg, rgba(220, 53, 69, 0.9), rgba(200, 35, 51, 0.9));
+  color: white;
+  font-weight: 700;
+}
+
+.status-badge.inactive {
+  background: linear-gradient(135deg, rgba(108, 117, 125, 0.9), rgba(84, 91, 98, 0.9));
+  color: white;
+  font-weight: 700;
+}
+
+/* Enhanced Progress Bar */
+.progress-fill {
+  background: linear-gradient(90deg, #28a745 0%, #20c997 50%, #17a2b8 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* Enhanced Action Buttons */
+.campaign-actions .btn {
+  position: relative;
+  overflow: hidden;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  border: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.campaign-actions .btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.campaign-actions .btn:hover::before {
+  left: 100%;
+}
+
+.campaign-actions .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.campaign-actions .btn-primary {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+}
+
+.campaign-actions .btn-secondary {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+}
+
+/* Enhanced Campaign Card Hover Effects */
+.campaign-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid transparent;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.campaign-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(0, 123, 255, 0.02), rgba(40, 167, 69, 0.02));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.campaign-card:hover::before {
+  opacity: 1;
+}
+
+.campaign-card:hover {
+  border-color: rgba(0, 123, 255, 0.2);
+  transform: translateY(-8px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+}
+
+.campaign-card:hover .campaign-image img {
+  transform: scale(1.05);
+}
+
+.campaign-card:hover .status-badge {
+  transform: scale(1.05);
+}
+
+/* Enhanced No Image State */
+.no-image {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  color: #6c757d;
+  flex-direction: column;
+  gap: 10px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.no-image span:first-child {
+  font-size: 2.5rem;
+}
+
+.no-image span:last-child {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.campaign-card:hover .no-image {
+  background: linear-gradient(135deg, #e9ecef, #dee2e6);
+  color: #495057;
+}
+
+/* Enhanced Campaign Meta */
+.campaign-meta {
+  background: #f8f9fa;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  margin-top: 15px;
+}
+
+.meta-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 0;
+}
+
+.meta-item .label {
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.meta-item .value {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+/* Enhanced Progress Stats */
+.progress-stats {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.progress-stats .raised {
+  font-weight: 700;
+  color: #28a745;
+  font-size: 1rem;
+}
+
+.progress-stats .goal {
+  color: #666;
+  text-align: center;
+  font-weight: 500;
+}
+
+.progress-stats .percentage {
+  font-weight: 700;
+  color: #007bff;
+  background: #e7f1ff;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+}
+
+/* Enhanced Campaign Description */
+.campaign-description {
+  color: #555;
+  line-height: 1.6;
+  margin: 15px 0;
+  font-size: 0.95rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Enhanced Category Badge */
+.campaign-category {
+  background: linear-gradient(135deg, #6c757d, #495057);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
+}
+
+/* Responsive Enhancements */
+@media (max-width: 768px) {
+  .campaign-card:hover {
+    transform: translateY(-4px);
+  }
+  
+  .progress-stats {
+    grid-template-columns: 1fr;
+    gap: 5px;
+    text-align: center;
+  }
+  
+  .campaign-meta {
+    padding: 10px;
+  }
+  
+  .campaign-actions {
+    gap: 8px;
+  }
+  
+  .campaign-actions .btn {
+    font-size: 0.85rem;
+    padding: 8px 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .campaign-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .campaign-category {
+    align-self: flex-start;
+  }
+  
+  .campaign-creator {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    text-align: left;
+  }
+  
+  .meta-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+}
+
+/* Loading state for campaign cards */
+.campaign-card.loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.campaign-card.loading .campaign-image {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Accessibility improvements */
+.campaign-card:focus-within {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+.campaign-title-link:focus,
+.campaign-image-link:focus {
+  outline: none;
+}
+
+.campaign-actions .btn:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}

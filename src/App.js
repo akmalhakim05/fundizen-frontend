@@ -7,6 +7,7 @@ import Register from './components/auth/Register';
 import EmailVerification from './components/auth/EmailVerification';
 import Dashboard from './components/Dashboard';
 import CampaignList from './components/campaigns/CampaignList';
+import CampaignDetails from './components/campaigns/CampaignDetails';
 import CreateCampaign from './components/campaigns/CreateCampaign';
 import AdminDashboard from './components/admin/AdminDashboard';
 import AdminCampaignManagement from './components/admin/AdminCampaignManagement';
@@ -114,6 +115,7 @@ function App() {
               {/* Public Routes */}
               <Route path="/" element={<Home />} />
               <Route path="/campaigns" element={<CampaignList />} />
+              <Route path="/campaign/:id" element={<CampaignDetails />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/login" element={<Login />} />
