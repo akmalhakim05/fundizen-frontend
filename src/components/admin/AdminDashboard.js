@@ -52,7 +52,7 @@ const AdminDashboard = () => {
       case 'users':
         return <UsersTab />;
       case 'pending':
-        return <PendingApprovalsTab />;
+        return <PendingApprovalsTab data={dashboardData} onRefresh={fetchDashboardData} />;
       case 'system':
         return <SystemTab />;
       default:
@@ -238,11 +238,262 @@ const UsersTab = () => {
 };
 
 // Pending Approvals Tab Component
-const PendingApprovalsTab = () => {
+const PendingApprovalsTab = ({ data, onRefresh }) => {
+  const [pendingCampaigns, setPendingCampaigns] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [actionLoading, setActionLoading] = useState({});
+
+  useEffect(() => {
+    fetchPendingCampaigns();
+  }, []);
+
+  const fetchPendingCampaigns = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const response = await adminService.getPendingCampaigns();
+      setPendingCampaigns(response.campaigns || []);
+    } catch (error) {
+      console.error('Error fetching pending campaigns:', error);
+      setError('Failed to load pending campaigns');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApprove = async (campaignId) => {
+    try {
+      setActionLoading(prev => ({ ...prev, [campaignId]: 'approving' }));
+      await adminService.approveCampaign(campaignId);
+      
+      // Remove from pending list
+      setPendingCampaigns(prev => prev.filter(c => c.id !== campaignId));
+      
+      // Refresh dashboard data
+      if (onRefresh) onRefresh();
+      
+      alert('Campaign approved successfully!');
+    } catch (error) {
+      console.error('Error approving campaign:', error);
+      alert('Failed to approve campaign: ' + (error.error || error.message));
+    } finally {
+      setActionLoading(prev => ({ ...prev, [campaignId]: null }));
+    }
+  };
+
+  const handleReject = async (campaignId) => {
+    const reason = prompt('Please provide a reason for rejection (optional):');
+    if (reason === null) return; // User cancelled
+
+    try {
+      setActionLoading(prev => ({ ...prev, [campaignId]: 'rejecting' }));
+      await adminService.rejectCampaign(campaignId, reason || '');
+      
+      // Remove from pending list
+      setPendingCampaigns(prev => prev.filter(c => c.id !== campaignId));
+      
+      // Refresh dashboard data
+      if (onRefresh) onRefresh();
+      
+      alert('Campaign rejected successfully!');
+    } catch (error) {
+      console.error('Error rejecting campaign:', error);
+      alert('Failed to reject campaign: ' + (error.error || error.message));
+    } finally {
+      setActionLoading(prev => ({ ...prev, [campaignId]: null }));
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-MY', {
+      style: 'currency',
+      currency: 'MYR',
+    }).format(amount || 0);
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-MY', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
   return (
     <div className="pending-tab">
-      <h2>⏳ Pending Approvals</h2>
-      <p>Pending approvals functionality will be implemented here.</p>
+      <div className="pending-header">
+        <h2>⏳ Pending Approvals</h2>
+        <p>Review and approve campaigns waiting for verification</p>
+        <button onClick={fetchPendingCampaigns} className="refresh-btn" disabled={loading}>
+          🔄 {loading ? 'Refreshing...' : 'Refresh'}
+        </button>
+      </div>
+
+      {loading && <LoadingSpinner message="Loading pending campaigns..." />}
+      
+      {error && <ErrorMessage message={error} onRetry={fetchPendingCampaigns} />}
+
+      {!loading && !error && (
+        <>
+          <div className="pending-stats">
+            <div className="stat-card pending-count">
+              <div className="stat-icon">⏳</div>
+              <div className="stat-content">
+                <h3>Pending Campaigns</h3>
+                <div className="stat-number">{pendingCampaigns.length}</div>
+                <div className="stat-description">Awaiting your review</div>
+              </div>
+            </div>
+            
+            <div className="stat-card total-pending-value">
+              <div className="stat-icon">💰</div>
+              <div className="stat-content">
+                <h3>Total Pending Value</h3>
+                <div className="stat-number">
+                  {formatCurrency(
+                    pendingCampaigns.reduce((sum, c) => sum + (c.goalAmount || 0), 0)
+                  )}
+                </div>
+                <div className="stat-description">Goal amount sum</div>
+              </div>
+            </div>
+          </div>
+
+          {pendingCampaigns.length === 0 ? (
+            <div className="no-pending">
+              <div className="no-pending-icon">✅</div>
+              <h3>All caught up!</h3>
+              <p>There are no campaigns pending approval at the moment.</p>
+            </div>
+          ) : (
+            <div className="pending-campaigns-list">
+              {pendingCampaigns.map(campaign => (
+                <PendingCampaignCard 
+                  key={campaign.id}
+                  campaign={campaign}
+                  onApprove={() => handleApprove(campaign.id)}
+                  onReject={() => handleReject(campaign.id)}
+                  isLoading={actionLoading[campaign.id]}
+                  formatCurrency={formatCurrency}
+                  formatDate={formatDate}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
+// Pending Campaign Card Component
+const PendingCampaignCard = ({ 
+  campaign, 
+  onApprove, 
+  onReject, 
+  isLoading,
+  formatCurrency,
+  formatDate 
+}) => {
+  return (
+    <div className="pending-campaign-card">
+      <div className="campaign-header">
+        <div className="campaign-image">
+          {campaign.imageUrl ? (
+            <img src={campaign.imageUrl} alt={campaign.name} />
+          ) : (
+            <div className="no-image-placeholder">📋</div>
+          )}
+        </div>
+        
+        <div className="campaign-info">
+          <h3 className="campaign-name">{campaign.name}</h3>
+          <p className="campaign-creator">
+            <strong>Creator:</strong> {campaign.creatorUsername || 'Unknown'}
+          </p>
+          <p className="campaign-category">
+            <strong>Category:</strong> {campaign.category}
+          </p>
+          <p className="campaign-submitted">
+            <strong>Submitted:</strong> {formatDate(campaign.createdAt)}
+          </p>
+        </div>
+      </div>
+
+      <div className="campaign-details">
+        <div className="campaign-description">
+          <h4>Description</h4>
+          <p>{campaign.description}</p>
+        </div>
+
+        <div className="campaign-metrics">
+          <div className="metric">
+            <span className="metric-label">Goal Amount</span>
+            <span className="metric-value">{formatCurrency(campaign.goalAmount)}</span>
+          </div>
+          <div className="metric">
+            <span className="metric-label">Duration</span>
+            <span className="metric-value">
+              {formatDate(campaign.startDate)} - {formatDate(campaign.endDate)}
+            </span>
+          </div>
+          <div className="metric">
+            <span className="metric-label">Campaign Length</span>
+            <span className="metric-value">{campaign.daysRemaining} days</span>
+          </div>
+        </div>
+
+        {campaign.documentUrl && (
+          <div className="campaign-documents">
+            <h4>Supporting Documents</h4>
+            <a 
+              href={campaign.documentUrl} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="document-link"
+            >
+              📄 View Document
+            </a>
+          </div>
+        )}
+      </div>
+
+      <div className="campaign-actions">
+        <button 
+          onClick={onApprove}
+          disabled={isLoading}
+          className={`action-btn approve ${isLoading === 'approving' ? 'loading' : ''}`}
+        >
+          {isLoading === 'approving' ? (
+            <>
+              <span className="spinner"></span>
+              Approving...
+            </>
+          ) : (
+            <>
+              ✅ Approve Campaign
+            </>
+          )}
+        </button>
+        
+        <button 
+          onClick={onReject}
+          disabled={isLoading}
+          className={`action-btn reject ${isLoading === 'rejecting' ? 'loading' : ''}`}
+        >
+          {isLoading === 'rejecting' ? (
+            <>
+              <span className="spinner"></span>
+              Rejecting...
+            </>
+          ) : (
+            <>
+              ❌ Reject Campaign
+            </>
+          )}
+        </button>
+      </div>
     </div>
   );
 };

@@ -352,5 +352,109 @@ export const adminService = {
       console.error('Error fetching system logs:', error);
       throw error.response?.data || error.message;
     }
+  },
+
+  // ===== ADDITIONAL FEATURES =====
+  
+  // Bulk approve multiple campaigns (if not already implemented)
+  bulkApproveCampaigns: async (campaignIds) => {
+    try {
+      // Since your backend doesn't have bulk endpoints yet, 
+      // we'll simulate it by calling individual approve endpoints
+      const results = await Promise.allSettled(
+        campaignIds.map(id => adminService.approveCampaign(id))
+      );
+      
+      const successCount = results.filter(r => r.status === 'fulfilled').length;
+      const failureCount = results.filter(r => r.status === 'rejected').length;
+      
+      return {
+        totalProcessed: campaignIds.length,
+        successCount,
+        failureCount,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Error bulk approving campaigns:', error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Bulk reject multiple campaigns (if not already implemented)
+  bulkRejectCampaigns: async (campaignIds, reason = '') => {
+    try {
+      // Since your backend doesn't have bulk endpoints yet, 
+      // we'll simulate it by calling individual reject endpoints
+      const results = await Promise.allSettled(
+        campaignIds.map(id => adminService.rejectCampaign(id, reason))
+      );
+      
+      const successCount = results.filter(r => r.status === 'fulfilled').length;
+      const failureCount = results.filter(r => r.status === 'rejected').length;
+      
+      return {
+        totalProcessed: campaignIds.length,
+        successCount,
+        failureCount,
+        reason,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Error bulk rejecting campaigns:', error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Bulk update user roles (if not already implemented)
+  bulkUpdateUserRoles: async (userIds, newRole) => {
+    try {
+      // Since your backend doesn't have bulk endpoints yet, 
+      // we'll simulate it by calling individual role update endpoints
+      const results = await Promise.allSettled(
+        userIds.map(id => {
+          if (newRole === 'admin') {
+            return adminService.promoteUserToAdmin(id);
+          } else {
+            return adminService.demoteAdminToUser(id);
+          }
+        })
+      );
+      
+      const successCount = results.filter(r => r.status === 'fulfilled').length;
+      const failureCount = results.filter(r => r.status === 'rejected').length;
+      
+      return {
+        totalProcessed: userIds.length,
+        successCount,
+        failureCount,
+        newRole,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Error bulk updating user roles:', error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Bulk update user verification status (if not already implemented)
+  bulkUpdateUserVerification: async (userIds, verified) => {
+    try {
+      // Note: You may need to add a verification endpoint to your backend
+      // For now, this is a placeholder that would need backend support
+      console.warn('Bulk verification update not implemented in backend yet');
+      
+      return {
+        totalProcessed: userIds.length,
+        successCount: 0,
+        failureCount: userIds.length,
+        verificationStatus: verified,
+        error: 'Bulk verification update not implemented in backend',
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Error bulk updating user verification:', error);
+      throw error.response?.data || error.message;
+    }
   }
 };
+
