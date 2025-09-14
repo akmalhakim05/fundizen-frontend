@@ -38,8 +38,8 @@ const AdminDashboard = () => {
   const tabs = [
     { id: 'overview', label: 'Overview', icon: '📊' },
     { id: 'campaigns', label: 'Campaigns', icon: '📋' },
-    { id: 'users', label: 'Users', icon: '👥' },
     { id: 'pending', label: 'Pending Approvals', icon: '⏳' },
+    { id: 'analytics', label: 'Analytics', icon: '📈' },
     { id: 'system', label: 'System', icon: '⚙️' }
   ];
 
@@ -49,10 +49,10 @@ const AdminDashboard = () => {
         return <OverviewTab data={dashboardData} onRefresh={fetchDashboardData} />;
       case 'campaigns':
         return <CampaignsTab />;
-      case 'users':
-        return <UsersTab />;
       case 'pending':
         return <PendingApprovalsTab data={dashboardData} onRefresh={fetchDashboardData} />;
+      case 'analytics':
+        return <AnalyticsTab />;
       case 'system':
         return <SystemTab />;
       default:
@@ -84,7 +84,7 @@ const AdminDashboard = () => {
     <div className="admin-dashboard">
       <div className="admin-header">
         <h1>🛠️ Admin Dashboard</h1>
-        <p>Manage campaigns, users, and system settings</p>
+        <p>Manage campaigns and system settings</p>
         <div className="admin-user-info">
           <span>Welcome, {userData?.username || currentUser?.email}</span>
           <span className="admin-badge">Administrator</span>
@@ -141,19 +141,6 @@ const OverviewTab = ({ data, onRefresh }) => {
           </div>
         </div>
 
-        <div className="stat-card users">
-          <div className="stat-icon">👥</div>
-          <div className="stat-content">
-            <h3>Users</h3>
-            <div className="stat-number">{data.users?.total || 0}</div>
-            <div className="stat-breakdown">
-              <span>Verified: {data.users?.verified || 0}</span>
-              <span>Admins: {data.users?.admins || 0}</span>
-              <span>Recent: {data.users?.recentSignups || 0}</span>
-            </div>
-          </div>
-        </div>
-
         <div className="stat-card activity">
           <div className="stat-icon">📈</div>
           <div className="stat-content">
@@ -161,7 +148,7 @@ const OverviewTab = ({ data, onRefresh }) => {
             <div className="stat-number">{data.activity?.pendingApprovals || 0}</div>
             <div className="stat-breakdown">
               <span>Pending Work: {data.activity?.totalPendingWork || 0}</span>
-              <span>Recent Users: {data.activity?.recentUsersCount || 0}</span>
+              <span>Recent Activity: {data.activity?.recentActivity || 0}</span>
             </div>
           </div>
         </div>
@@ -176,6 +163,18 @@ const OverviewTab = ({ data, onRefresh }) => {
             </div>
           </div>
         </div>
+
+        <div className="stat-card analytics">
+          <div className="stat-icon">📊</div>
+          <div className="stat-content">
+            <h3>Analytics</h3>
+            <div className="stat-number">{data.analytics?.totalViews || 0}</div>
+            <div className="stat-breakdown">
+              <span>Campaign Views</span>
+              <span>This Month</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="quick-actions">
@@ -185,10 +184,10 @@ const OverviewTab = ({ data, onRefresh }) => {
             📋 Review Pending Campaigns
           </button>
           <button className="action-btn secondary">
-            👥 Manage Users
+            📊 Generate Reports
           </button>
           <button className="action-btn tertiary">
-            📊 Generate Reports
+            ⚙️ System Settings
           </button>
         </div>
       </div>
@@ -202,14 +201,14 @@ const OverviewTab = ({ data, onRefresh }) => {
             <span className="activity-time">2 minutes ago</span>
           </div>
           <div className="activity-item">
-            <span className="activity-icon">👤</span>
-            <span className="activity-text">New user registered</span>
-            <span className="activity-time">15 minutes ago</span>
-          </div>
-          <div className="activity-item">
             <span className="activity-icon">✅</span>
             <span className="activity-text">Campaign approved</span>
             <span className="activity-time">1 hour ago</span>
+          </div>
+          <div className="activity-item">
+            <span className="activity-icon">📊</span>
+            <span className="activity-text">Daily report generated</span>
+            <span className="activity-time">3 hours ago</span>
           </div>
         </div>
       </div>
@@ -223,16 +222,35 @@ const CampaignsTab = () => {
     <div className="campaigns-tab">
       <h2>📋 Campaign Management</h2>
       <p>Campaign management functionality will be implemented here.</p>
+      <div className="tab-actions">
+        <button className="action-btn primary">
+          View All Campaigns
+        </button>
+        <button className="action-btn secondary">
+          Export Campaign Data
+        </button>
+      </div>
     </div>
   );
 };
 
-// Users Tab Component
-const UsersTab = () => {
+// Analytics Tab Component
+const AnalyticsTab = () => {
   return (
-    <div className="users-tab">
-      <h2>👥 User Management</h2>
-      <p>User management functionality will be implemented here.</p>
+    <div className="analytics-tab">
+      <h2>📈 Analytics & Reports</h2>
+      <p>Analytics and reporting functionality will be implemented here.</p>
+      <div className="tab-actions">
+        <button className="action-btn primary">
+          Campaign Analytics
+        </button>
+        <button className="action-btn secondary">
+          System Reports
+        </button>
+        <button className="action-btn tertiary">
+          Export Data
+        </button>
+      </div>
     </div>
   );
 };
@@ -504,6 +522,17 @@ const SystemTab = () => {
     <div className="system-tab">
       <h2>⚙️ System Management</h2>
       <p>System management functionality will be implemented here.</p>
+      <div className="tab-actions">
+        <button className="action-btn primary">
+          System Health Check
+        </button>
+        <button className="action-btn secondary">
+          System Configuration
+        </button>
+        <button className="action-btn tertiary">
+          Maintenance Mode
+        </button>
+      </div>
     </div>
   );
 };
