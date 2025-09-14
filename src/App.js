@@ -11,7 +11,6 @@ import CampaignDetails from './components/campaigns/CampaignDetails';
 import CreateCampaign from './components/campaigns/CreateCampaign';
 import AdminDashboard from './components/admin/AdminDashboard';
 import AdminCampaignManagement from './components/admin/AdminCampaignManagement';
-import AdminUserManagement from './components/admin/AdminUserManagement';
 import PrivateRoute from './components/auth/PrivateRoute';
 import AdminRoute from './components/auth/AdminRoute';
 import './styles/global.css';
@@ -140,7 +139,7 @@ function App() {
                 } 
               />
 
-              {/* Admin Routes */}
+              {/* Admin Routes - Only Campaign Management */}
               <Route 
                 path="/admin" 
                 element={
@@ -162,14 +161,6 @@ function App() {
                 element={
                   <AdminRoute>
                     <AdminCampaignManagement />
-                  </AdminRoute>
-                } 
-              />
-              <Route 
-                path="/admin/users" 
-                element={
-                  <AdminRoute>
-                    <AdminUserManagement />
                   </AdminRoute>
                 } 
               />

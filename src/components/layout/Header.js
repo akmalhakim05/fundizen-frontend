@@ -77,7 +77,7 @@ const Header = () => {
                     My Campaigns
                   </Link>
                   
-                  {/* Admin Section */}
+                  {/* Admin Section - Only Campaign Management */}
                   {isAdmin && (
                     <>
                       <hr className="dropdown-divider" />
@@ -92,10 +92,6 @@ const Header = () => {
                       <Link to="/admin/campaigns" className="dropdown-item admin-item">
                         <span className="dropdown-icon">📋</span>
                         Manage Campaigns
-                      </Link>
-                      <Link to="/admin/users" className="dropdown-item admin-item">
-                        <span className="dropdown-icon">👥</span>
-                        Manage Users
                       </Link>
                     </>
                   )}
@@ -142,14 +138,13 @@ const Header = () => {
               <Link to="/dashboard" className="mobile-nav-link">Dashboard</Link>
               <Link to="/create-campaign" className="mobile-nav-link">Create Campaign</Link>
               
-              {/* Admin links for mobile */}
+              {/* Admin links for mobile - Only Campaign Management */}
               {isAdmin && (
                 <>
                   <hr className="mobile-nav-divider" />
                   <div className="mobile-nav-section-title">👑 Admin Panel</div>
                   <Link to="/admin" className="mobile-nav-link admin-link">Admin Dashboard</Link>
                   <Link to="/admin/campaigns" className="mobile-nav-link admin-link">Manage Campaigns</Link>
-                  <Link to="/admin/users" className="mobile-nav-link admin-link">Manage Users</Link>
                 </>
               )}
               
