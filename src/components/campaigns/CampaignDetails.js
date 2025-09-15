@@ -19,6 +19,7 @@ const CampaignDetails = () => {
   const [showDonationModal, setShowDonationModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [activeTab, setActiveTab] = useState('description');
+  const [donateLoading, setDonateLoading] = useState(false);
 
   useEffect(() => {
     fetchCampaignDetails();
@@ -73,7 +74,7 @@ const CampaignDetails = () => {
     const daysRemaining = getDaysRemaining();
     
     if (!campaign.verified) {
-      return { status: 'pending', label: 'INACTIVE', color: '#6c757d' };
+      return { status: 'pending', label: 'UNDER REVIEW', color: '#6c757d' };
     }
     
     if (!campaign.isActive) {
@@ -92,7 +93,7 @@ const CampaignDetails = () => {
     return { status: 'active', label: 'ACTIVE', color: '#28a745' };
   };
 
-  const handleDonate = () => {
+  const handleDonate = async () => {
     if (!currentUser) {
       navigate('/login', { 
         state: { 
@@ -110,7 +111,12 @@ const CampaignDetails = () => {
       return;
     }
     
-    setShowDonationModal(true);
+    setDonateLoading(true);
+    // Small delay to show loading state
+    setTimeout(() => {
+      setDonateLoading(false);
+      setShowDonationModal(true);
+    }, 300);
   };
 
   const canDonate = () => {
@@ -120,6 +126,32 @@ const CampaignDetails = () => {
 
   const isCreator = () => {
     return currentUser && campaign && currentUser.id === campaign.creatorId;
+  };
+
+  const getUrgencyLevel = () => {
+    const daysRemaining = getDaysRemaining();
+    const progressPercentage = getProgressPercentage();
+    
+    if (daysRemaining <= 3 && progressPercentage < 100) return 'critical';
+    if (daysRemaining <= 7 && progressPercentage < 80) return 'high';
+    if (daysRemaining <= 14 && progressPercentage < 50) return 'medium';
+    return 'normal';
+  };
+
+  const getUrgencyMessage = () => {
+    const urgency = getUrgencyLevel();
+    const daysRemaining = getDaysRemaining();
+    
+    switch (urgency) {
+      case 'critical':
+        return `🚨 Critical: Only ${daysRemaining} day${daysRemaining === 1 ? '' : 's'} left!`;
+      case 'high':
+        return `⚡ Urgent: ${daysRemaining} days remaining`;
+      case 'medium':
+        return `⏰ ${daysRemaining} days left to reach the goal`;
+      default:
+        return null;
+    }
   };
 
   if (loading) {
@@ -145,6 +177,7 @@ const CampaignDetails = () => {
   const statusInfo = getStatusInfo();
   const progressPercentage = getProgressPercentage();
   const daysRemaining = getDaysRemaining();
+  const urgencyMessage = getUrgencyMessage();
 
   return (
     <div className="campaign-details-enhanced">
@@ -160,6 +193,24 @@ const CampaignDetails = () => {
           </nav>
         </div>
       </div>
+
+      {/* Urgency Banner */}
+      {urgencyMessage && canDonate() && !isCreator() && (
+        <div className={`urgency-banner urgency-${getUrgencyLevel()}`}>
+          <div className="container">
+            <div className="urgency-content">
+              <span className="urgency-message">{urgencyMessage}</span>
+              <button 
+                className="urgency-donate-btn"
+                onClick={handleDonate}
+                disabled={donateLoading}
+              >
+                {donateLoading ? 'Loading...' : 'Donate Now'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="campaign-content-wrapper">
@@ -321,12 +372,47 @@ const CampaignDetails = () => {
                 {/* Action Buttons */}
                 <div className="action-section-enhanced">
                   {canDonate() && !isCreator() && (
-                    <button 
-                      className="btn-donate-large-enhanced"
-                      onClick={handleDonate}
-                    >
-                      Donate Now
-                    </button>
+                    <div className="donate-section-enhanced">
+                      <button 
+                        className={`btn-donate-large-enhanced ${donateLoading ? 'loading' : ''} ${getUrgencyLevel()}`}
+                        onClick={handleDonate}
+                        disabled={donateLoading}
+                      >
+                        {donateLoading ? (
+                          <>
+                            <span className="loading-spinner"></span>
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            💝 Donate Now
+                          </>
+                        )}
+                      </button>
+                      
+                      {progressPercentage >= 100 && (
+                        <div className="goal-achieved-message">
+                          🎉 Goal achieved! Your support still helps!
+                        </div>
+                      )}
+                      
+                      {urgencyMessage && (
+                        <div className="donation-urgency-text">
+                          {urgencyMessage}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {isCreator() && (
+                    <div className="creator-actions">
+                      <div className="creator-badge">
+                        👤 You are the creator
+                      </div>
+                      <button className="btn-manage-campaign">
+                        Manage Campaign
+                      </button>
+                    </div>
                   )}
                   
                   <div className="social-actions-enhanced">
@@ -334,13 +420,13 @@ const CampaignDetails = () => {
                       className="social-btn-enhanced"
                       onClick={() => setShowShareModal(true)}
                     >
-                      Share
+                      📱 Share
                     </button>
                     <button className="social-btn-enhanced">
-                      Save
+                      ❤️ Save
                     </button>
                     <button className="social-btn-enhanced">
-                      Report
+                      🚩 Report
                     </button>
                   </div>
                 </div>

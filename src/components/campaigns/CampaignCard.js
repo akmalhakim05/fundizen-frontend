@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import DonationModal from './DonationModal';
 import '../../styles/components/Campaign.css';
 
 const CampaignCard = ({ campaign }) => {
   const [showQuickDonate, setShowQuickDonate] = useState(false);
+  const [showDonationModal, setShowDonationModal] = useState(false);
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-MY', {
@@ -55,6 +60,36 @@ const CampaignCard = ({ campaign }) => {
     return campaign.verified && campaign.isActive && getDaysRemaining() > 0;
   };
 
+  const handleDonate = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!currentUser) {
+      navigate('/login', { 
+        state: { 
+          message: 'Please login to donate to this campaign.',
+          returnUrl: `/campaign/${campaign.id}`
+        }
+      });
+      return;
+    }
+    
+    if (!currentUser.emailVerified) {
+      navigate('/verify-email', {
+        state: { message: 'Please verify your email to donate to campaigns.' }
+      });
+      return;
+    }
+    
+    setShowDonationModal(true);
+  };
+
+  const handleQuickDonate = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowQuickDonate(true);
+  };
+
   const statusInfo = getStatusInfo();
   const progressPercentage = getProgressPercentage();
   const daysRemaining = getDaysRemaining();
@@ -71,22 +106,24 @@ const CampaignCard = ({ campaign }) => {
         </div>
 
         {/* Campaign Image */}
-        <div className="campaign-image-modern">
-          {campaign.imageUrl ? (
-            <img
-              src={campaign.imageUrl}
-              alt={campaign.name}
-              onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.nextElementSibling.style.display = 'flex';
-              }}
-            />
-          ) : null}
-          <div className="no-image-modern" style={{ display: campaign.imageUrl ? 'none' : 'flex' }}>
-            <div className="clipboard-icon">📋</div>
-            <span>No Image</span>
+        <Link to={`/campaign/${campaign.id}`} className="campaign-image-link">
+          <div className="campaign-image-modern">
+            {campaign.imageUrl ? (
+              <img
+                src={campaign.imageUrl}
+                alt={campaign.name}
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.nextElementSibling.style.display = 'flex';
+                }}
+              />
+            ) : null}
+            <div className="no-image-modern" style={{ display: campaign.imageUrl ? 'none' : 'flex' }}>
+              <div className="clipboard-icon">📋</div>
+              <span>No Image</span>
+            </div>
           </div>
-        </div>
+        </Link>
 
         {/* Campaign Content */}
         <div className="campaign-content-modern">
@@ -96,7 +133,9 @@ const CampaignCard = ({ campaign }) => {
           </div>
 
           {/* Campaign Title */}
-          <h3 className="campaign-title-modern">{campaign.name}</h3>
+          <Link to={`/campaign/${campaign.id}`} className="campaign-title-link">
+            <h3 className="campaign-title-modern">{campaign.name}</h3>
+          </Link>
 
           {/* Creator Info */}
           <div className="creator-info-modern">
@@ -168,14 +207,25 @@ const CampaignCard = ({ campaign }) => {
               <span className="btn-icon-modern">👁</span>
               View Details
             </Link>
+            
             {canReceiveDonations() ? (
-              <button
-                className="btn-donate-modern"
-                onClick={() => setShowQuickDonate(true)}
-              >
-                <span className="btn-icon-modern">💝</span>
-                Donate Now
-              </button>
+              <div className="donate-buttons-container">
+                <button
+                  className="btn-donate-modern"
+                  onClick={handleDonate}
+                  title="Donate to this campaign"
+                >
+                  <span className="btn-icon-modern">💝</span>
+                  Donate Now
+                </button>
+                <button
+                  className="btn-quick-donate"
+                  onClick={handleQuickDonate}
+                  title="Quick donate amounts"
+                >
+                  ⚡
+                </button>
+              </div>
             ) : (
               <button className="btn-disabled-modern" disabled>
                 <span className="btn-icon-modern">🚫</span>
@@ -184,8 +234,28 @@ const CampaignCard = ({ campaign }) => {
               </button>
             )}
           </div>
+
+          {/* Donation Goal Achievement Indicator */}
+          {progressPercentage >= 100 && (
+            <div className="goal-achieved-banner">
+              🎉 Goal Achieved! Thank you to all supporters!
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Full Donation Modal */}
+      {showDonationModal && (
+        <DonationModal 
+          campaign={campaign}
+          onClose={() => setShowDonationModal(false)}
+          onSuccess={(donation) => {
+            setShowDonationModal(false);
+            // You can add success handling here
+            console.log('Donation successful:', donation);
+          }}
+        />
+      )}
 
       {/* Quick Donate Modal */}
       {showQuickDonate && (
@@ -194,7 +264,7 @@ const CampaignCard = ({ campaign }) => {
         }}>
           <div className="quick-donate-modal">
             <div className="modal-header">
-              <h3>Support "{campaign.name}"</h3>
+              <h3>Quick Donate to "{campaign.name}"</h3>
               <button 
                 className="close-btn"
                 onClick={() => setShowQuickDonate(false)}
@@ -208,7 +278,14 @@ const CampaignCard = ({ campaign }) => {
                 <h4>Choose Amount</h4>
                 <div className="amount-buttons">
                   {[25, 50, 100, 250, 500].map(amount => (
-                    <button key={amount} className="amount-btn">
+                    <button 
+                      key={amount} 
+                      className="amount-btn"
+                      onClick={() => {
+                        setShowQuickDonate(false);
+                        setShowDonationModal(true);
+                      }}
+                    >
                       RM {amount}
                     </button>
                   ))}
@@ -220,16 +297,36 @@ const CampaignCard = ({ campaign }) => {
                     type="number" 
                     placeholder="Enter amount"
                     className="amount-input"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && e.target.value > 0) {
+                        setShowQuickDonate(false);
+                        setShowDonationModal(true);
+                      }
+                    }}
                   />
                 </div>
                 
-                <Link 
-                  to={`/campaign/${campaign.id}?action=donate`}
+                <button 
                   className="btn-proceed"
-                  onClick={() => setShowQuickDonate(false)}
+                  onClick={() => {
+                    setShowQuickDonate(false);
+                    setShowDonationModal(true);
+                  }}
                 >
                   Proceed to Donate
-                </Link>
+                </button>
+
+                <div className="campaign-quick-info">
+                  <div className="quick-info-item">
+                    <strong>Goal:</strong> {formatCurrency(campaign.goalAmount)}
+                  </div>
+                  <div className="quick-info-item">
+                    <strong>Raised:</strong> {formatCurrency(campaign.raisedAmount)}
+                  </div>
+                  <div className="quick-info-item">
+                    <strong>Days Left:</strong> {daysRemaining} days
+                  </div>
+                </div>
               </div>
             </div>
           </div>
