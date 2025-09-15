@@ -1,4 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { 
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  getIdToken
+} from 'firebase/auth';
+import { auth } from '../firebase/config';
 import api from '../services/api';
 
 const AuthContext = createContext();
@@ -17,55 +24,156 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      fetchUserData();
-    } else {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          // Get Firebase ID token
+          const idToken = await getIdToken(user);
+          
+          // Store token in localStorage for API calls
+          localStorage.setItem('authToken', idToken);
+          
+          // Fetch additional user data from your backend
+          await fetchUserData();
+          
+          setCurrentUser(user);
+        } catch (error) {
+          console.error('Error getting user token:', error);
+          localStorage.removeItem('authToken');
+          setCurrentUser(null);
+          setUserData(null);
+        }
+      } else {
+        localStorage.removeItem('authToken');
+        setCurrentUser(null);
+        setUserData(null);
+      }
       setLoading(false);
-    }
+    });
+
+    return unsubscribe;
   }, []);
 
   const fetchUserData = async () => {
     try {
       const response = await api.get('/auth/me');
-      setCurrentUser(response.data.user);
-      setUserData(response.data.user);
+      setUserData(response.data.user || response.data);
     } catch (error) {
       console.error('Error fetching user data:', error);
-      localStorage.removeItem('authToken');
-    } finally {
-      setLoading(false);
+      // Don't remove token here as it might be a temporary server issue
     }
   };
 
   const login = async (email, password) => {
     try {
-      const response = await api.post('/auth/login', {
-        email,
-        password
-      });
-
-      const { token, user } = response.data;
-      localStorage.setItem('authToken', token);
-      setCurrentUser(user);
-      setUserData(user);
+      console.log('Attempting Firebase login...');
       
-      return user;
+      // Sign in with Firebase
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      console.log('Firebase login successful:', user);
+      
+      // Get ID token
+      const idToken = await getIdToken(user);
+      console.log('Got Firebase ID token');
+      
+      // Store token for API calls
+      localStorage.setItem('authToken', idToken);
+      
+      // Send token to your backend to get additional user data
+      try {
+        const response = await api.post('/auth/login', {
+          firebaseToken: idToken
+        });
+        
+        console.log('Backend login successful:', response.data);
+        
+        const backendUserData = response.data.user || response.data;
+        setUserData(backendUserData);
+        
+        return backendUserData;
+      } catch (backendError) {
+        console.error('Backend login failed, but Firebase succeeded:', backendError);
+        
+        // Even if backend fails, we can still use Firebase user data
+        const basicUserData = {
+          id: user.uid,
+          email: user.email,
+          username: user.displayName || user.email,
+          role: 'user', // Default role
+          isAdmin: false
+        };
+        
+        setUserData(basicUserData);
+        return basicUserData;
+      }
     } catch (error) {
-      throw error.response?.data || error.message;
+      console.error('Login error:', error);
+      
+      // Transform Firebase errors to user-friendly messages
+      let errorMessage = 'Login failed. Please try again.';
+      
+      switch (error.code) {
+        case 'auth/user-not-found':
+          errorMessage = 'No account found with this email address.';
+          break;
+        case 'auth/wrong-password':
+          errorMessage = 'Incorrect password.';
+          break;
+        case 'auth/invalid-email':
+          errorMessage = 'Invalid email address.';
+          break;
+        case 'auth/user-disabled':
+          errorMessage = 'This account has been disabled.';
+          break;
+        case 'auth/too-many-requests':
+          errorMessage = 'Too many failed attempts. Please try again later.';
+          break;
+        default:
+          if (error.message) {
+            errorMessage = error.message;
+          }
+      }
+      
+      throw { error: errorMessage };
     }
   };
 
   const logout = async () => {
     try {
-      await api.post('/auth/logout');
+      // Sign out from Firebase
+      await signOut(auth);
+      
+      // Try to notify backend (optional)
+      try {
+        await api.post('/auth/logout');
+      } catch (error) {
+        console.error('Backend logout error (non-critical):', error);
+      }
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
+      // Always clean up local state
       localStorage.removeItem('authToken');
       setCurrentUser(null);
       setUserData(null);
     }
+  };
+
+  // Helper function to refresh token when needed
+  const refreshToken = async () => {
+    if (currentUser) {
+      try {
+        const idToken = await getIdToken(currentUser, true); // Force refresh
+        localStorage.setItem('authToken', idToken);
+        return idToken;
+      } catch (error) {
+        console.error('Error refreshing token:', error);
+        throw error;
+      }
+    }
+    throw new Error('No current user');
   };
 
   const value = {
@@ -73,6 +181,7 @@ export const AuthProvider = ({ children }) => {
     userData,
     login,
     logout,
+    refreshToken,
     loading
   };
 

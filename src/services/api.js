@@ -5,11 +5,11 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api
 // Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000, // Increased timeout for file uploads
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Important for CORS with credentials
+  withCredentials: true,
 });
 
 // Request interceptor to add auth token
@@ -50,7 +50,7 @@ api.interceptors.response.use(
     });
     return response;
   },
-  (error) => {
+  async (error) => {
     console.error('API Response Error:', {
       message: error.message,
       status: error.response?.status,
@@ -60,12 +60,32 @@ api.interceptors.response.use(
       headers: error.response?.headers
     });
     
+    // Handle 401 errors (token expired/invalid)
     if (error.response?.status === 401) {
-      // Token expired or invalid
+      // Try to refresh token if we have Firebase auth
+      try {
+        const { auth } = await import('../firebase/config');
+        const { getIdToken } = await import('firebase/auth');
+        
+        if (auth.currentUser) {
+          console.log('Attempting to refresh Firebase token...');
+          const newToken = await getIdToken(auth.currentUser, true);
+          localStorage.setItem('authToken', newToken);
+          
+          // Retry the original request with new token
+          const originalRequest = error.config;
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          
+          return api(originalRequest);
+        }
+      } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
+      }
+      
+      // If refresh fails or no current user, redirect to login
       localStorage.removeItem('authToken');
-      // Only redirect to login if not already on login page
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+      if (window.location.pathname !== '/admin/login' && window.location.pathname !== '/login') {
+        window.location.href = '/admin/login';
       }
     }
     
@@ -75,16 +95,22 @@ api.interceptors.response.use(
 
 export default api;
 
-// Alternative login function to test different request formats
+// Test function for Firebase authentication (for debugging)
 export const testLogin = async (email, password) => {
   try {
-    console.log('Testing login with different formats...');
+    console.log('Testing Firebase-based login...');
     
-    // Test 1: Current format
-    console.log('Test 1: Standard format');
-    const response1 = await axios.post(`${API_BASE_URL}/auth/login`, {
-      email,
-      password
+    // Import Firebase dynamically to avoid issues if not configured
+    const { signInWithEmailAndPassword, getIdToken } = await import('firebase/auth');
+    const { auth } = await import('../firebase/config');
+    
+    // Sign in with Firebase
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const idToken = await getIdToken(userCredential.user);
+    
+    // Test backend login with Firebase token
+    const response = await axios.post(`${API_BASE_URL}/auth/login`, {
+      firebaseToken: idToken
     }, {
       headers: {
         'Content-Type': 'application/json'
@@ -92,47 +118,9 @@ export const testLogin = async (email, password) => {
       withCredentials: true
     });
     
-    return response1.data;
-  } catch (error1) {
-    console.log('Test 1 failed, trying alternative formats...');
-    
-    try {
-      // Test 2: Form data format
-      console.log('Test 2: Form data format');
-      const formData = new FormData();
-      formData.append('email', email);
-      formData.append('password', password);
-      
-      const response2 = await axios.post(`${API_BASE_URL}/auth/login`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        },
-        withCredentials: true
-      });
-      
-      return response2.data;
-    } catch (error2) {
-      console.log('Test 2 failed, trying URL encoded...');
-      
-      try {
-        // Test 3: URL encoded format
-        console.log('Test 3: URL encoded format');
-        const params = new URLSearchParams();
-        params.append('email', email);
-        params.append('password', password);
-        
-        const response3 = await axios.post(`${API_BASE_URL}/auth/login`, params, {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          withCredentials: true
-        });
-        
-        return response3.data;
-      } catch (error3) {
-        console.log('All formats failed. Original error:', error1.response?.data);
-        throw error1;
-      }
-    }
+    return response.data;
+  } catch (error) {
+    console.error('Firebase test login failed:', error);
+    throw error;
   }
 };

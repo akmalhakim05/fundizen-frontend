@@ -1,4 +1,3 @@
-// Debug version of AdminLogin.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -32,13 +31,13 @@ const AdminLogin = () => {
     setLoading(true);
 
     try {
-      console.log('Starting login process...');
-      setDebugInfo('Attempting login...');
+      console.log('Starting Firebase login process...');
+      setDebugInfo('Attempting Firebase authentication...');
       
       const user = await login(formData.email, formData.password);
       
       console.log('Login successful, user:', user);
-      setDebugInfo('Login successful!');
+      setDebugInfo('Login successful! Checking admin privileges...');
       
       // Check if user is admin
       if (user && (user.role === 'admin' || user.isAdmin)) {
@@ -51,7 +50,6 @@ const AdminLogin = () => {
     } catch (error) {
       console.error('Login error in component:', error);
       
-      // Handle different error formats
       let errorMessage = 'Login failed. Please check your credentials.';
       let debugMessage = `Error details: ${JSON.stringify(error, null, 2)}`;
       
@@ -70,19 +68,19 @@ const AdminLogin = () => {
     }
   };
 
-  // Test function to try different API formats
+  // Test function to try Firebase authentication
   const handleTestLogin = async () => {
     setError('');
     setDebugInfo('');
     setLoading(true);
 
     try {
-      setDebugInfo('Testing different API formats...');
+      setDebugInfo('Testing Firebase authentication...');
       const result = await testLogin(formData.email, formData.password);
-      setDebugInfo(`Test successful: ${JSON.stringify(result, null, 2)}`);
+      setDebugInfo(`Firebase test successful: ${JSON.stringify(result, null, 2)}`);
     } catch (error) {
-      setError('All test formats failed');
-      setDebugInfo(`Test error: ${JSON.stringify(error.response?.data || error.message, null, 2)}`);
+      setError('Firebase test failed');
+      setDebugInfo(`Firebase test error: ${JSON.stringify(error.response?.data || error.message, null, 2)}`);
     } finally {
       setLoading(false);
     }
@@ -100,7 +98,7 @@ const AdminLogin = () => {
             <span className="admin-logo-icon">🛠️</span>
             <h1>Admin Portal</h1>
           </div>
-          <p>Sign in to access the admin dashboard</p>
+          <p>Sign in with your Firebase credentials</p>
         </div>
 
         {error && (
@@ -138,7 +136,7 @@ const AdminLogin = () => {
               value={formData.email}
               onChange={handleChange}
               required
-              placeholder="Enter admin email"
+              placeholder="Enter Firebase email"
             />
           </div>
 
@@ -151,7 +149,7 @@ const AdminLogin = () => {
               value={formData.password}
               onChange={handleChange}
               required
-              placeholder="Enter password"
+              placeholder="Enter Firebase password"
             />
           </div>
 
@@ -160,7 +158,7 @@ const AdminLogin = () => {
             className="admin-submit-btn"
             disabled={loading}
           >
-            {loading ? 'Signing In...' : 'Sign In as Admin'}
+            {loading ? 'Signing In...' : 'Sign In with Firebase'}
           </button>
 
           <button 
@@ -168,12 +166,12 @@ const AdminLogin = () => {
             onClick={handleTestLogin}
             className="admin-submit-btn"
             style={{ 
-              background: '#6c757d', 
+              background: '#28a745', 
               marginTop: '10px' 
             }}
             disabled={loading}
           >
-            Test API Formats
+            Test Firebase Connection
           </button>
         </form>
 
@@ -185,7 +183,8 @@ const AdminLogin = () => {
             color: '#666',
             fontFamily: 'monospace'
           }}>
-            API URL: {process.env.REACT_APP_API_URL || 'http://localhost:8080/api'}
+            API URL: {process.env.REACT_APP_API_URL || 'http://localhost:8080/api'}<br/>
+            Firebase Project: {process.env.REACT_APP_FIREBASE_PROJECT_ID || 'Not configured'}
           </div>
         </div>
       </div>
