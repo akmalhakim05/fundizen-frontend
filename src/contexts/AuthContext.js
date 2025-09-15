@@ -33,18 +33,20 @@ export const AuthProvider = ({ children }) => {
           // Store token in localStorage for API calls
           localStorage.setItem('authToken', idToken);
           
-          // Fetch additional user data from your backend
+          // Fetch user data (which will check stored data first)
           await fetchUserData();
           
           setCurrentUser(user);
         } catch (error) {
           console.error('Error getting user token:', error);
           localStorage.removeItem('authToken');
+          localStorage.removeItem('userData');
           setCurrentUser(null);
           setUserData(null);
         }
       } else {
         localStorage.removeItem('authToken');
+        localStorage.removeItem('userData');
         setCurrentUser(null);
         setUserData(null);
       }
@@ -56,11 +58,40 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUserData = async () => {
     try {
-      const response = await api.get('/auth/me');
-      setUserData(response.data.user || response.data);
+      // First, try to get stored user data
+      const storedUserData = localStorage.getItem('userData');
+      if (storedUserData) {
+        const parsedUserData = JSON.parse(storedUserData);
+        setUserData(parsedUserData);
+        
+        // Still try to fetch fresh data from backend, but don't fail if it doesn't work
+        try {
+          const response = await api.get('/auth/me');
+          const freshUserData = response.data.user || response.data;
+          
+          // Update with fresh data if available
+          localStorage.setItem('userData', JSON.stringify(freshUserData));
+          setUserData(freshUserData);
+        } catch (error) {
+          console.warn('Could not fetch fresh user data, using stored data:', error);
+          // Keep using stored data if backend is unavailable
+        }
+      } else {
+        // No stored data, try to fetch from backend
+        const response = await api.get('/auth/me');
+        const userData = response.data.user || response.data;
+        localStorage.setItem('userData', JSON.stringify(userData));
+        setUserData(userData);
+      }
     } catch (error) {
       console.error('Error fetching user data:', error);
       // Don't remove token here as it might be a temporary server issue
+      // Only clear if it's an auth error
+      if (error.response?.status === 401) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userData');
+        setUserData(null);
+      }
     }
   };
 
@@ -68,29 +99,36 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log('Attempting Firebase login...');
       
-      // Sign in with Firebase
+      // Step 1: Firebase Authentication
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
       console.log('Firebase login successful:', user);
       
-      // Get ID token
-      const idToken = await getIdToken(user);
+      // Step 2: Get Firebase token
+      const firebaseToken = await getIdToken(user, true);
       console.log('Got Firebase ID token');
       
       // Store token for API calls
-      localStorage.setItem('authToken', idToken);
+      localStorage.setItem('authToken', firebaseToken);
       
-      // Send token to your backend to get additional user data
+      // Step 3: Backend authentication with role data
       try {
         const response = await api.post('/auth/login', {
-          firebaseToken: idToken
+          token: firebaseToken,
+          usernameOrEmail: email,
+          password: password
         });
         
         console.log('Backend login successful:', response.data);
         
         const backendUserData = response.data.user || response.data;
-        setUserData(backendUserData);
+        
+        // Step 4: Store user data WITH ROLE INFORMATION
+        if (backendUserData) {
+          localStorage.setItem('userData', JSON.stringify(backendUserData));
+          setUserData(backendUserData);
+        }
         
         return backendUserData;
       } catch (backendError) {
@@ -105,6 +143,7 @@ export const AuthProvider = ({ children }) => {
           isAdmin: false
         };
         
+        localStorage.setItem('userData', JSON.stringify(basicUserData));
         setUserData(basicUserData);
         return basicUserData;
       }
@@ -116,10 +155,9 @@ export const AuthProvider = ({ children }) => {
       
       switch (error.code) {
         case 'auth/user-not-found':
-          errorMessage = 'No account found with this email address.';
-          break;
         case 'auth/wrong-password':
-          errorMessage = 'Incorrect password.';
+        case 'auth/invalid-credential':
+          errorMessage = 'Wrong username or password.';
           break;
         case 'auth/invalid-email':
           errorMessage = 'Invalid email address.';
@@ -156,6 +194,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       // Always clean up local state
       localStorage.removeItem('authToken');
+      localStorage.removeItem('userData');
       setCurrentUser(null);
       setUserData(null);
     }

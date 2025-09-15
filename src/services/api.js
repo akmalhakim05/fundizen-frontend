@@ -84,6 +84,7 @@ api.interceptors.response.use(
       
       // If refresh fails or no current user, redirect to login
       localStorage.removeItem('authToken');
+      localStorage.removeItem('userData');
       if (window.location.pathname !== '/admin/login' && window.location.pathname !== '/login') {
         window.location.href = '/admin/login';
       }
@@ -104,13 +105,17 @@ export const testLogin = async (email, password) => {
     const { signInWithEmailAndPassword, getIdToken } = await import('firebase/auth');
     const { auth } = await import('../firebase/config');
     
-    // Sign in with Firebase
+    // Step 1: Sign in with Firebase
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const idToken = await getIdToken(userCredential.user);
     
-    // Test backend login with Firebase token
+    // Step 2: Get Firebase token
+    const firebaseToken = await getIdToken(userCredential.user, true);
+    
+    // Step 3: Test backend login with Firebase token and credentials
     const response = await axios.post(`${API_BASE_URL}/auth/login`, {
-      firebaseToken: idToken
+      token: firebaseToken,
+      usernameOrEmail: email,
+      password: password
     }, {
       headers: {
         'Content-Type': 'application/json'
