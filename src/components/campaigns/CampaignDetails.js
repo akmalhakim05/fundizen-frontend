@@ -73,23 +73,23 @@ const CampaignDetails = () => {
     const daysRemaining = getDaysRemaining();
     
     if (!campaign.verified) {
-      return { status: 'pending', label: 'Pending Review', color: '#ffc107' };
+      return { status: 'pending', label: 'INACTIVE', color: '#6c757d' };
     }
     
     if (!campaign.isActive) {
-      return { status: 'inactive', label: 'Inactive', color: '#6c757d' };
+      return { status: 'inactive', label: 'INACTIVE', color: '#6c757d' };
     }
     
     if (daysRemaining <= 0) {
-      return { status: 'ended', label: 'Campaign Ended', color: '#dc3545' };
+      return { status: 'ended', label: 'CAMPAIGN ENDED', color: '#dc3545' };
     }
     
     const progressPercentage = getProgressPercentage();
     if (progressPercentage >= 100) {
-      return { status: 'funded', label: 'Fully Funded', color: '#28a745' };
+      return { status: 'funded', label: 'FULLY FUNDED', color: '#28a745' };
     }
     
-    return { status: 'active', label: 'Active', color: '#28a745' };
+    return { status: 'active', label: 'ACTIVE', color: '#28a745' };
   };
 
   const handleDonate = () => {
@@ -147,149 +147,102 @@ const CampaignDetails = () => {
   const daysRemaining = getDaysRemaining();
 
   return (
-    <div className="campaign-details-container">
-      {/* Campaign Header */}
-      <div className="campaign-header-section">
+    <div className="campaign-details-enhanced">
+      {/* Breadcrumb Navigation */}
+      <div className="breadcrumb-container">
         <div className="container">
-          <div className="breadcrumb">
+          <nav className="breadcrumb-nav">
             <Link to="/">Home</Link>
             <span>/</span>
             <Link to="/campaigns">Campaigns</Link>
             <span>/</span>
             <span>{campaign.name}</span>
-          </div>
-          
-          <div className="campaign-status-badge" style={{ backgroundColor: statusInfo.color }}>
-            {statusInfo.label}
-          </div>
+          </nav>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="campaign-content">
+      <div className="campaign-content-wrapper">
         <div className="container">
-          <div className="campaign-layout">
+          <div className="campaign-layout-enhanced">
             {/* Left Column - Campaign Info */}
-            <div className="campaign-main">
-              <div className="campaign-image-container">
+            <div className="campaign-main-enhanced">
+              {/* Status Badge */}
+              <div 
+                className="status-badge-large"
+                style={{ backgroundColor: statusInfo.color }}
+              >
+                {statusInfo.label}
+              </div>
+
+              {/* Campaign Image */}
+              <div className="campaign-image-large">
                 {campaign.imageUrl ? (
                   <img 
                     src={campaign.imageUrl} 
                     alt={campaign.name}
-                    className="campaign-main-image"
+                    className="main-campaign-image"
                   />
                 ) : (
-                  <div className="campaign-placeholder-image">
-                    <span className="placeholder-icon">📋</span>
-                    <span>No Image Available</span>
+                  <div className="campaign-placeholder-large">
+                    <div className="placeholder-content">
+                      <div className="help-text">HELP!</div>
+                      <span className="no-image-text">No Image</span>
+                    </div>
                   </div>
                 )}
               </div>
 
-              <div className="campaign-info">
-                <div className="campaign-meta">
-                  <span className="category-badge">{campaign.category}</span>
-                  <span className="created-date">
-                    Created on {formatDate(campaign.createdAt)}
-                  </span>
+              {/* Campaign Info */}
+              <div className="campaign-info-enhanced">
+                <div className="category-badge-large">
+                  {campaign.category?.toUpperCase() || 'GENERAL'}
+                </div>
+                
+                <h1 className="campaign-title-large">{campaign.name}</h1>
+                
+                <div className="creator-section-enhanced">
+                  <div className="creator-avatar-large">
+                    {(campaign.creatorUsername || 'A')[0].toUpperCase()}
+                  </div>
+                  <div className="creator-details-enhanced">
+                    <span className="created-by-label">CREATED BY</span>
+                    <span className="creator-name-large">{campaign.creatorUsername || 'Anonymous'}</span>
+                  </div>
                 </div>
 
-                <h1 className="campaign-title">{campaign.name}</h1>
-                
-                <div className="creator-info">
-                  <div className="creator-avatar">
-                    {campaign.creatorUsername?.[0]?.toUpperCase() || '?'}
-                  </div>
-                  <div className="creator-details">
-                    <span className="creator-label">Created by</span>
-                    <span className="creator-name">{campaign.creatorUsername || 'Anonymous'}</span>
-                  </div>
+                <div className="creation-date">
+                  Created on {formatDate(campaign.createdAt)}
                 </div>
 
                 {/* Tabs */}
-                <div className="campaign-tabs">
+                <div className="campaign-tabs-enhanced">
                   <button 
-                    className={`tab-btn ${activeTab === 'description' ? 'active' : ''}`}
+                    className={`tab-btn-enhanced ${activeTab === 'description' ? 'active' : ''}`}
                     onClick={() => setActiveTab('description')}
                   >
-                    📝 Description
+                    Description
                   </button>
                   <button 
-                    className={`tab-btn ${activeTab === 'updates' ? 'active' : ''}`}
+                    className={`tab-btn-enhanced ${activeTab === 'updates' ? 'active' : ''}`}
                     onClick={() => setActiveTab('updates')}
                   >
-                    📢 Updates
+                    Updates
                   </button>
-                  <button 
-                    className={`tab-btn ${activeTab === 'supporters' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('supporters')}
-                  >
-                    💝 Supporters
-                  </button>
-                  {campaign.documentUrl && (
-                    <button 
-                      className={`tab-btn ${activeTab === 'documents' ? 'active' : ''}`}
-                      onClick={() => setActiveTab('documents')}
-                    >
-                      📄 Documents
-                    </button>
-                  )}
                 </div>
 
                 {/* Tab Content */}
-                <div className="tab-content">
+                <div className="tab-content-enhanced">
                   {activeTab === 'description' && (
-                    <div className="description-content">
-                      <h3>About This Campaign</h3>
-                      <div className="description-text">
-                        {campaign.description?.split('\n').map((paragraph, index) => (
-                          <p key={index}>{paragraph}</p>
-                        ))}
-                      </div>
+                    <div className="description-content-enhanced">
+                      <p>{campaign.description}</p>
                     </div>
                   )}
 
                   {activeTab === 'updates' && (
-                    <div className="updates-content">
-                      <h3>Campaign Updates</h3>
-                      <div className="no-updates">
-                        <span className="no-updates-icon">📢</span>
+                    <div className="updates-content-enhanced">
+                      <div className="no-updates-enhanced">
                         <p>No updates yet. Check back later for news from the campaign creator.</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === 'supporters' && (
-                    <div className="supporters-content">
-                      <h3>Supporters</h3>
-                      <div className="no-supporters">
-                        <span className="no-supporters-icon">💝</span>
-                        <p>Be the first to support this campaign!</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === 'documents' && campaign.documentUrl && (
-                    <div className="documents-content">
-                      <h3>Supporting Documents</h3>
-                      <div className="document-item">
-                        <div className="document-info">
-                          <span className="document-icon">📄</span>
-                          <div className="document-details">
-                            <span className="document-name">Campaign Document</span>
-                            <span className="document-description">
-                              Additional information and verification documents
-                            </span>
-                          </div>
-                        </div>
-                        <a 
-                          href={campaign.documentUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="btn btn-outline btn-small"
-                        >
-                          📥 Download
-                        </a>
                       </div>
                     </div>
                   )}
@@ -297,113 +250,110 @@ const CampaignDetails = () => {
               </div>
             </div>
 
-            {/* Right Column - Campaign Stats & Actions */}
-            <div className="campaign-sidebar">
-              <div className="funding-card">
-                <div className="funding-stats">
-                  <div className="raised-amount">
-                    {formatCurrency(campaign.raisedAmount)}
-                    <span className="raised-label">raised</span>
+            {/* Right Column - Funding Info */}
+            <div className="funding-sidebar-enhanced">
+              <div className="funding-card-enhanced">
+                {/* Funding Stats */}
+                <div className="funding-stats-enhanced">
+                  <div className="raised-section">
+                    <div className="amount-raised-large">
+                      {formatCurrency(campaign.raisedAmount)}
+                    </div>
+                    <div className="raised-label-large">RAISED</div>
                   </div>
                   
-                  <div className="goal-amount">
-                    of {formatCurrency(campaign.goalAmount)} goal
-                  </div>
-
-                  <div className="progress-container">
-                    <div className="progress-bar">
-                      <div 
-                        className="progress-fill"
-                        style={{ width: `${progressPercentage}%` }}
-                      />
+                  <div className="goal-section">
+                    <div className="goal-amount-text">
+                      of {formatCurrency(campaign.goalAmount)} goal
                     </div>
-                    <span className="progress-percentage">
+                    <div className="funding-percentage">
                       {progressPercentage.toFixed(1)}% funded
-                    </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="progress-container-enhanced">
+                  <div className="progress-bar-large">
+                    <div 
+                      className="progress-fill-large"
+                      style={{ 
+                        width: `${progressPercentage}%`,
+                        backgroundColor: statusInfo.color
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Campaign Stats */}
+                <div className="campaign-stats-enhanced">
+                  <div className="stat-row-enhanced">
+                    <div className="stat-icon-enhanced">📅</div>
+                    <div className="stat-info-enhanced">
+                      <div className="stat-label-enhanced">CAMPAIGN PERIOD</div>
+                      <div className="stat-value-enhanced">
+                        {formatDate(campaign.startDate)} - {formatDate(campaign.endDate)}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="stat-row-enhanced">
+                    <div className="stat-icon-enhanced">⏰</div>
+                    <div className="stat-info-enhanced">
+                      <div className="stat-label-enhanced">TIME REMAINING</div>
+                      <div className="stat-value-enhanced">
+                        {daysRemaining} days left
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="campaign-timeline">
-                    <div className="timeline-item">
-                      <span className="timeline-icon">📅</span>
-                      <div className="timeline-content">
-                        <span className="timeline-label">Campaign Period</span>
-                        <span className="timeline-value">
-                          {formatDate(campaign.startDate)} - {formatDate(campaign.endDate)}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="timeline-item">
-                      <span className="timeline-icon">⏰</span>
-                      <div className="timeline-content">
-                        <span className="timeline-label">Time Remaining</span>
-                        <span className="timeline-value">
-                          {daysRemaining > 0 ? `${daysRemaining} days left` : 'Campaign ended'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="timeline-item">
-                      <span className="timeline-icon">👥</span>
-                      <div className="timeline-content">
-                        <span className="timeline-label">Supporters</span>
-                        <span className="timeline-value">0 people</span>
+                  <div className="stat-row-enhanced">
+                    <div className="stat-icon-enhanced">👥</div>
+                    <div className="stat-info-enhanced">
+                      <div className="stat-label-enhanced">SUPPORTERS</div>
+                      <div className="stat-value-enhanced">
+                        {campaign.supporters || 0} people
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="action-buttons">
+                {/* Action Buttons */}
+                <div className="action-section-enhanced">
                   {canDonate() && !isCreator() && (
                     <button 
-                      className="btn btn-primary btn-large donate-btn"
+                      className="btn-donate-large-enhanced"
                       onClick={handleDonate}
                     >
-                      💝 Support This Campaign
+                      Donate Now
                     </button>
                   )}
                   
-                  {isCreator() && (
-                    <div className="creator-actions">
-                      <Link 
-                        to={`/campaign/${id}/edit`}
-                        className="btn btn-outline"
-                      >
-                        ✏️ Edit Campaign
-                      </Link>
-                      <button className="btn btn-secondary">
-                        📊 View Analytics
-                      </button>
-                    </div>
-                  )}
-
-                  <div className="social-actions">
+                  <div className="social-actions-enhanced">
                     <button 
-                      className="btn btn-outline btn-social"
+                      className="social-btn-enhanced"
                       onClick={() => setShowShareModal(true)}
                     >
-                      🔗 Share
+                      Share
                     </button>
-                    <button className="btn btn-outline btn-social">
-                      ❤️ Save
+                    <button className="social-btn-enhanced">
+                      Save
                     </button>
-                    <button className="btn btn-outline btn-social">
-                      📢 Report
+                    <button className="social-btn-enhanced">
+                      Report
                     </button>
                   </div>
                 </div>
               </div>
 
-              {/* Related Campaigns */}
-              <div className="related-campaigns">
+              {/* Similar Campaigns */}
+              <div className="similar-campaigns-enhanced">
                 <h3>Similar Campaigns</h3>
-                <div className="related-list">
-                  <div className="no-related">
-                    <p>No similar campaigns found.</p>
-                    <Link to="/campaigns" className="btn btn-outline btn-small">
-                      Browse All Campaigns
-                    </Link>
-                  </div>
+                <div className="no-similar-enhanced">
+                  <p>No similar campaigns found.</p>
+                  <Link to="/campaigns" className="browse-all-btn">
+                    Browse All Campaigns
+                  </Link>
                 </div>
               </div>
             </div>
@@ -418,7 +368,6 @@ const CampaignDetails = () => {
           onClose={() => setShowDonationModal(false)}
           onSuccess={(donation) => {
             setShowDonationModal(false);
-            // Refresh campaign data
             fetchCampaignDetails();
           }}
         />

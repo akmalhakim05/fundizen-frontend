@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import '../../styles/components/Campaign.css';
 
 const CampaignCard = ({ campaign }) => {
+  const [showQuickDonate, setShowQuickDonate] = useState(false);
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-MY', {
       style: 'currency',
@@ -32,35 +34,44 @@ const CampaignCard = ({ campaign }) => {
     return Math.max(0, diffDays);
   };
 
-  const getStatusBadge = () => {
-    if (!campaign.verified) return 'pending';
-    if (!campaign.isActive) return 'inactive';
+  const getStatusInfo = () => {
+    if (!campaign.verified) {
+      return { status: 'pending', label: 'UNDER REVIEW', color: '#ffc107', canDonate: false };
+    }
+    
+    if (!campaign.isActive) {
+      return { status: 'inactive', label: 'INACTIVE', color: '#6c757d', canDonate: false };
+    }
     
     const daysRemaining = getDaysRemaining();
-    if (daysRemaining <= 0) return 'expired';
-    
-    return 'active';
-  };
-
-  const getStatusLabel = () => {
-    const status = getStatusBadge();
-    switch (status) {
-      case 'pending': return 'Under Review';
-      case 'active': return 'Active';
-      case 'expired': return 'Ended';
-      case 'inactive': return 'Inactive';
-      default: return 'Unknown';
+    if (daysRemaining <= 0) {
+      return { status: 'ended', label: 'CAMPAIGN ENDED', color: '#dc3545', canDonate: false };
     }
+    
+    return { status: 'active', label: 'ACTIVE', color: '#28a745', canDonate: true };
   };
 
   const canReceiveDonations = () => {
     return campaign.verified && campaign.isActive && getDaysRemaining() > 0;
   };
 
+  const statusInfo = getStatusInfo();
+  const progressPercentage = getProgressPercentage();
+  const daysRemaining = getDaysRemaining();
+
   return (
-    <div className="campaign-card">
-      <Link to={`/campaign/${campaign.id}`} className="campaign-image-link">
-        <div className="campaign-image">
+    <>
+      <div className="campaign-card-modern">
+        {/* Status Badge */}
+        <div 
+          className="status-badge-modern" 
+          style={{ backgroundColor: statusInfo.color }}
+        >
+          {statusInfo.label}
+        </div>
+
+        {/* Campaign Image */}
+        <div className="campaign-image-modern">
           {campaign.imageUrl ? (
             <img
               src={campaign.imageUrl}
@@ -71,83 +82,160 @@ const CampaignCard = ({ campaign }) => {
               }}
             />
           ) : null}
-          <div className="no-image" style={{ display: campaign.imageUrl ? 'none' : 'flex' }}>
-            <span>📋</span>
+          <div className="no-image-modern" style={{ display: campaign.imageUrl ? 'none' : 'flex' }}>
+            <div className="clipboard-icon">📋</div>
             <span>No Image</span>
           </div>
-          <div className={`status-badge ${getStatusBadge()}`}>
-            {getStatusLabel()}
-          </div>
         </div>
-      </Link>
-      
-      <div className="campaign-content">
-        <div className="campaign-header">
-          <Link to={`/campaign/${campaign.id}`} className="campaign-title-link">
-            <h3 className="campaign-title">{campaign.name}</h3>
-          </Link>
-          <span className="campaign-category">{campaign.category}</span>
-        </div>
-        
-        <p className="campaign-description">
-          {campaign.description?.length > 120
-            ? `${campaign.description.substring(0, 120)}...`
-            : campaign.description
-          }
-        </p>
 
-        <div className="campaign-creator">
-          <span className="creator-label">by</span>
-          <span className="creator-name">{campaign.creatorUsername || 'Anonymous'}</span>
-        </div>
-        
-        <div className="campaign-stats">
-          <div className="funding-progress">
-            <div className="progress-bar">
+        {/* Campaign Content */}
+        <div className="campaign-content-modern">
+          {/* Category Badge */}
+          <div className="category-badge-modern">
+            {campaign.category?.toUpperCase() || 'GENERAL'}
+          </div>
+
+          {/* Campaign Title */}
+          <h3 className="campaign-title-modern">{campaign.name}</h3>
+
+          {/* Creator Info */}
+          <div className="creator-info-modern">
+            <div className="creator-avatar-modern">
+              {(campaign.creatorUsername || 'A')[0].toUpperCase()}
+            </div>
+            <span className="creator-text">
+              by <strong>{campaign.creatorUsername || 'Anonymous'}</strong>
+            </span>
+          </div>
+
+          {/* Description */}
+          <p className="campaign-description-modern">
+            {campaign.description?.length > 100
+              ? `${campaign.description.substring(0, 100)}...`
+              : campaign.description
+            }
+          </p>
+
+          {/* Funding Progress */}
+          <div className="funding-section-modern">
+            <div className="funding-amounts">
+              <div className="raised-amount-modern">
+                <span className="amount-text">{formatCurrency(campaign.raisedAmount)}</span>
+                <span className="raised-label">RAISED</span>
+              </div>
+              <div className="goal-amount-modern">
+                <span className="goal-text">of {formatCurrency(campaign.goalAmount)} goal</span>
+                <span className="percentage-text">{progressPercentage.toFixed(1)}%</span>
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="progress-bar-modern">
               <div 
-                className="progress-fill"
-                style={{ width: `${getProgressPercentage()}%` }}
-              ></div>
+                className="progress-fill-modern"
+                style={{ 
+                  width: `${progressPercentage}%`,
+                  backgroundColor: statusInfo.color
+                }}
+              />
             </div>
-            <div className="progress-stats">
-              <span className="raised">{formatCurrency(campaign.raisedAmount)}</span>
-              <span className="goal">of {formatCurrency(campaign.goalAmount)}</span>
-              <span className="percentage">{getProgressPercentage().toFixed(1)}%</span>
+
+            {/* Stats Row */}
+            <div className="stats-row-modern">
+              <div className="stat-item-modern">
+                <div className="stat-icon-modern">📅</div>
+                <div className="stat-content-modern">
+                  <span className="stat-label-modern">DAYS LEFT</span>
+                  <span className="stat-value-modern">{daysRemaining} days</span>
+                </div>
+              </div>
+              <div className="stat-item-modern">
+                <div className="stat-icon-modern">👥</div>
+                <div className="stat-content-modern">
+                  <span className="stat-label-modern">SUPPORTERS</span>
+                  <span className="stat-value-modern">{campaign.supporters || 0} people</span>
+                </div>
+              </div>
             </div>
           </div>
-          
-          <div className="campaign-meta">
-            <div className="meta-item">
-              <span className="label">Days Left:</span>
-              <span className="value">
-                {getDaysRemaining() > 0 ? `${getDaysRemaining()} days` : 'Ended'}
-              </span>
-            </div>
-            <div className="meta-item">
-              <span className="label">End Date:</span>
-              <span className="value">{formatDate(campaign.endDate)}</span>
-            </div>
-          </div>
-        </div>
-        
-        <div className="campaign-actions">
-          <Link 
-            to={`/campaign/${campaign.id}`} 
-            className="btn btn-primary"
-          >
-            👁️ View Details
-          </Link>
-          {canReceiveDonations() && (
+
+          {/* Action Buttons */}
+          <div className="action-buttons-modern">
             <Link 
-              to={`/campaign/${campaign.id}?action=donate`}
-              className="btn btn-secondary"
+              to={`/campaign/${campaign.id}`} 
+              className="btn-view-modern"
             >
-              💝 Support Now
+              <span className="btn-icon-modern">👁</span>
+              View Details
             </Link>
-          )}
+            {canReceiveDonations() ? (
+              <button
+                className="btn-donate-modern"
+                onClick={() => setShowQuickDonate(true)}
+              >
+                <span className="btn-icon-modern">💝</span>
+                Donate Now
+              </button>
+            ) : (
+              <button className="btn-disabled-modern" disabled>
+                <span className="btn-icon-modern">🚫</span>
+                {statusInfo.status === 'pending' ? 'Under Review' : 
+                 statusInfo.status === 'ended' ? 'Campaign Ended' : 'Not Available'}
+              </button>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Quick Donate Modal */}
+      {showQuickDonate && (
+        <div className="quick-donate-overlay" onClick={(e) => {
+          if (e.target === e.currentTarget) setShowQuickDonate(false);
+        }}>
+          <div className="quick-donate-modal">
+            <div className="modal-header">
+              <h3>Support "{campaign.name}"</h3>
+              <button 
+                className="close-btn"
+                onClick={() => setShowQuickDonate(false)}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="modal-content">
+              <div className="quick-amounts">
+                <h4>Choose Amount</h4>
+                <div className="amount-buttons">
+                  {[25, 50, 100, 250, 500].map(amount => (
+                    <button key={amount} className="amount-btn">
+                      RM {amount}
+                    </button>
+                  ))}
+                </div>
+                
+                <div className="custom-amount">
+                  <span className="currency-symbol">RM</span>
+                  <input 
+                    type="number" 
+                    placeholder="Enter amount"
+                    className="amount-input"
+                  />
+                </div>
+                
+                <Link 
+                  to={`/campaign/${campaign.id}?action=donate`}
+                  className="btn-proceed"
+                  onClick={() => setShowQuickDonate(false)}
+                >
+                  Proceed to Donate
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
