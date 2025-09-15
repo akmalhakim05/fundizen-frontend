@@ -74,3 +74,65 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+// Alternative login function to test different request formats
+export const testLogin = async (email, password) => {
+  try {
+    console.log('Testing login with different formats...');
+    
+    // Test 1: Current format
+    console.log('Test 1: Standard format');
+    const response1 = await axios.post(`${API_BASE_URL}/auth/login`, {
+      email,
+      password
+    }, {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      withCredentials: true
+    });
+    
+    return response1.data;
+  } catch (error1) {
+    console.log('Test 1 failed, trying alternative formats...');
+    
+    try {
+      // Test 2: Form data format
+      console.log('Test 2: Form data format');
+      const formData = new FormData();
+      formData.append('email', email);
+      formData.append('password', password);
+      
+      const response2 = await axios.post(`${API_BASE_URL}/auth/login`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        withCredentials: true
+      });
+      
+      return response2.data;
+    } catch (error2) {
+      console.log('Test 2 failed, trying URL encoded...');
+      
+      try {
+        // Test 3: URL encoded format
+        console.log('Test 3: URL encoded format');
+        const params = new URLSearchParams();
+        params.append('email', email);
+        params.append('password', password);
+        
+        const response3 = await axios.post(`${API_BASE_URL}/auth/login`, params, {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          withCredentials: true
+        });
+        
+        return response3.data;
+      } catch (error3) {
+        console.log('All formats failed. Original error:', error1.response?.data);
+        throw error1;
+      }
+    }
+  }
+};
