@@ -9,13 +9,8 @@ import Dashboard from './components/Dashboard';
 import CampaignList from './components/campaigns/CampaignList';
 import CampaignDetails from './components/campaigns/CampaignDetails';
 import CreateCampaign from './components/campaigns/CreateCampaign';
-import AdminDashboard from './components/admin/AdminDashboard';
-import AdminCampaignManagement from './components/admin/AdminCampaignManagement';
-import AdminUserManagement from './components/admin/AdminUserManagement';
-import DonationAnalytics from './components/admin/DonationAnalytics';
 import DonationSuccess from './components/donations/DonationSuccess';
 import PrivateRoute from './components/auth/PrivateRoute';
-import AdminRoute from './components/auth/AdminRoute';
 import './styles/global.css';
 
 // Home component
@@ -356,48 +351,6 @@ function App() {
                   <PrivateRoute>
                     <UserProfile />
                   </PrivateRoute>
-                } 
-              />
-
-              {/* Admin Routes */}
-              <Route 
-                path="/admin" 
-                element={
-                  <AdminRoute>
-                    <AdminDashboard />
-                  </AdminRoute>
-                } 
-              />
-              <Route 
-                path="/admin/dashboard" 
-                element={
-                  <AdminRoute>
-                    <AdminDashboard />
-                  </AdminRoute>
-                } 
-              />
-              <Route 
-                path="/admin/campaigns" 
-                element={
-                  <AdminRoute>
-                    <AdminCampaignManagement />
-                  </AdminRoute>
-                } 
-              />
-              <Route 
-                path="/admin/users" 
-                element={
-                  <AdminRoute>
-                    <AdminUserManagement />
-                  </AdminRoute>
-                } 
-              />
-              <Route 
-                path="/admin/donations" 
-                element={
-                  <AdminRoute>
-                    <DonationAnalytics />
-                  </AdminRoute>
                 } 
               />
               

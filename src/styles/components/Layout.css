@@ -1,4 +1,4 @@
-/* Layout CSS with Admin Styles */
+/* Layout CSS - User Functions Only */
 .header {
   background: white;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -123,27 +123,6 @@
   color: #333;
 }
 
-.admin-indicator {
-  font-size: 0.9rem;
-  background: linear-gradient(135deg, #ffc107, #fd7e14);
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: glow 2s ease-in-out infinite alternate;
-}
-
-@keyframes glow {
-  from {
-    box-shadow: 0 0 5px rgba(255, 193, 7, 0.5);
-  }
-  to {
-    box-shadow: 0 0 10px rgba(255, 193, 7, 0.8);
-  }
-}
-
 .dropdown-arrow {
   font-size: 12px;
   color: #666;
@@ -164,20 +143,6 @@
   border: 1px solid #e9ecef;
 }
 
-.dropdown-section-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 20px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #6c757d;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  background: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
-}
-
 .dropdown-item {
   display: flex;
   align-items: center;
@@ -196,16 +161,6 @@
 
 .dropdown-item:hover {
   background-color: #f8f9fa;
-}
-
-.dropdown-item.admin-item {
-  background: linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(253, 126, 20, 0.1));
-  border-left: 3px solid transparent;
-}
-
-.dropdown-item.admin-item:hover {
-  background: linear-gradient(135deg, rgba(255, 193, 7, 0.2), rgba(253, 126, 20, 0.2));
-  border-left-color: #ffc107;
 }
 
 .dropdown-item.logout {
@@ -252,18 +207,6 @@
   padding: 20px;
 }
 
-.mobile-nav-section-title {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #6c757d;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 8px 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .mobile-nav-link {
   display: block;
   padding: 12px 0;
@@ -281,20 +224,6 @@
 
 .mobile-nav-link:hover {
   color: #007bff;
-}
-
-.mobile-nav-link.admin-link {
-  color: #856404;
-  background: linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(253, 126, 20, 0.1));
-  padding: 12px 15px;
-  border-radius: 6px;
-  margin: 2px 0;
-  border-bottom: none;
-}
-
-.mobile-nav-link.admin-link:hover {
-  color: #533408;
-  background: linear-gradient(135deg, rgba(255, 193, 7, 0.2), rgba(253, 126, 20, 0.2));
 }
 
 .mobile-nav-link.logout {
@@ -355,12 +284,6 @@
   .user-dropdown {
     right: -10px;
     min-width: 180px;
-  }
-
-  .admin-indicator {
-    width: 18px;
-    height: 18px;
-    font-size: 0.8rem;
   }
 }
 
