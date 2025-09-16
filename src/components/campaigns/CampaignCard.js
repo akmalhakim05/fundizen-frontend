@@ -5,7 +5,7 @@ import DonationModal from './DonationModal';
 import '../../styles/components/Campaign.css';
 
 const CampaignCard = ({ campaign }) => {
-  const [showQuickDonate, setShowQuickDonate] = useState(false);
+  const [showQuickDonate, setShowQuickDonate] = useState(false);  
   const [showDonationModal, setShowDonationModal] = useState(false);
   const { currentUser } = useAuth();
   const navigate = useNavigate();
@@ -283,7 +283,7 @@ const CampaignCard = ({ campaign }) => {
                       className="amount-btn"
                       onClick={() => {
                         setShowQuickDonate(false);
-                        setShowDonationModal(true);
+                        setShowDonationModal(true); 
                       }}
                     >
                       RM {amount}
