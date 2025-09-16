@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { campaignService } from '../../services/campaignService';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorMessage from '../common/ErrorMessage';
+import SimpleDonationModal from './DonationModal';
 import ShareModal from './ShareModal';
 import '../../styles/components/CampaignDetails.css';
 
@@ -15,6 +16,7 @@ const CampaignDetails = () => {
   const [campaign, setCampaign] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showDonationModal, setShowDonationModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [activeTab, setActiveTab] = useState('description');
   const [donateLoading, setDonateLoading] = useState(false);
@@ -103,13 +105,36 @@ const CampaignDetails = () => {
   };
 
   const handleDonate = async () => {
+    if (!currentUser) {
+      navigate('/login', { 
+        state: { 
+          message: 'Please login to donate to this campaign.',
+          returnUrl: `/campaign/${id}`
+        }
+      });
+      return;
+    }
+    
+    if (!currentUser.emailVerified) {
+      navigate('/verify-email', {
+        state: { message: 'Please verify your email to donate to campaigns.' }
+      });
+      return;
+    }
+    
     setDonateLoading(true);
     // Small delay to show loading state
     setTimeout(() => {
       setDonateLoading(false);
-      // Simple alert for now - no actual functionality
-      alert('Donate functionality coming soon!');
+      setShowDonationModal(true);
     }, 300);
+  };
+
+  const handleDonationSuccess = (result) => {
+    console.log('Donation successful:', result);
+    setShowDonationModal(false);
+    // Refresh campaign data
+    fetchCampaignDetails();
   };
 
   const canDonate = () => {
@@ -441,6 +466,14 @@ const CampaignDetails = () => {
       </div>
 
       {/* Modals */}
+      {showDonationModal && (
+        <SimpleDonationModal 
+          campaign={campaign}
+          onClose={() => setShowDonationModal(false)}
+          onSuccess={handleDonationSuccess}
+        />
+      )}
+
       {showShareModal && (
         <ShareModal 
           campaign={campaign}

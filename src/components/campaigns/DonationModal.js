@@ -1,232 +1,199 @@
 import React, { useState, useEffect } from 'react';
+import { loadStripe } from '@stripe/stripe-js';
+import {
+  Elements,
+  PaymentElement,
+  useStripe,
+  useElements
+} from '@stripe/react-stripe-js';
 import { useAuth } from '../../contexts/AuthContext';
-import { paymentService } from '../../services/paymentService';
-import LoadingSpinner from '../common/LoadingSpinner';
 import '../../styles/components/DonationModal.css';
 
+// Payment Form Component
+const PaymentForm = ({ donationData, onSuccess, onError, onClose }) => {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [message, setMessage] = useState('');
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!stripe || !elements) {
+      return;
+    }
+
+    setIsProcessing(true);
+    setMessage('');
+
+    try {
+      // Create donation and payment intent
+      const response = await fetch('/api/payment/donate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(donationData)
+      });
+
+      const donationResult = await response.json();
+
+      if (!donationResult.success) {
+        throw new Error(donationResult.error);
+      }
+
+      // Confirm payment
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        clientSecret: donationResult.payment.clientSecret,
+        confirmParams: {
+          return_url: `${window.location.origin}/donation/success`,
+          payment_method_data: {
+            billing_details: {
+              name: donationData.donorName,
+              email: donationData.donorEmail,
+            }
+          }
+        },
+        redirect: 'if_required'
+      });
+
+      if (error) {
+        onError(error.message);
+      } else if (paymentIntent.status === 'succeeded') {
+        onSuccess(donationResult);
+      } else if (paymentIntent.status === 'requires_action') {
+        setMessage('Please complete the additional authentication step.');
+      }
+
+    } catch (error) {
+      onError(error.message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="payment-form">
+      <PaymentElement 
+        options={{
+          layout: 'tabs',
+          paymentMethodOrder: ['card', 'fpx', 'grabpay']
+        }}
+      />
+      
+      {message && (
+        <div className="payment-message">{message}</div>
+      )}
+      
+      <div className="form-actions">
+        <button 
+          type="button" 
+          className="btn btn-outline"
+          onClick={onClose}
+          disabled={isProcessing}
+        >
+          Cancel
+        </button>
+        <button 
+          type="submit" 
+          disabled={isProcessing || !stripe || !elements}
+          className="btn btn-primary btn-large"
+        >
+          {isProcessing ? 'Processing...' : `Donate RM ${donationData.amount}`}
+        </button>
+      </div>
+    </form>
+  );
+};
+
+// Main Donation Modal Component
 const DonationModal = ({ campaign, onClose, onSuccess }) => {
   const { currentUser } = useAuth();
-  const [step, setStep] = useState('amount'); // amount, details, payment, processing, success
-  const [donationAmount, setDonationAmount] = useState('');
-  const [customAmount, setCustomAmount] = useState('');
-  const [donorName, setDonorName] = useState(currentUser?.username || '');
-  const [donorEmail, setDonorEmail] = useState(currentUser?.email || '');
-  const [message, setMessage] = useState('');
-  const [isAnonymous, setIsAnonymous] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('stripe'); // stripe, bank_transfer
-  const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState('amount'); // amount, payment, success
+  const [stripePromise, setStripePromise] = useState(null);
+  const [donationData, setDonationData] = useState({
+    campaignId: campaign.id || campaign._id,
+    amount: 50,
+    donorName: currentUser?.username || '',
+    donorEmail: currentUser?.email || '',
+    message: '',
+    isAnonymous: false
+  });
   const [error, setError] = useState('');
-  const [paymentConfig, setPaymentConfig] = useState(null);
-  const [fees, setFees] = useState(null);
+  const [clientSecret, setClientSecret] = useState('');
 
   const predefinedAmounts = [25, 50, 100, 250, 500, 1000];
 
   useEffect(() => {
-    loadPaymentConfig();
+    // Initialize Stripe
+    const initializeStripe = async () => {
+      try {
+        const response = await fetch('/api/payment/config');
+        const config = await response.json();
+        setStripePromise(loadStripe(config.config.publishableKey));
+      } catch (error) {
+        console.error('Error loading Stripe:', error);
+        setError('Failed to load payment system');
+      }
+    };
+
+    initializeStripe();
   }, []);
 
-  useEffect(() => {
-    if (getFinalAmount() >= 5) {
-      calculateFees();
-    } else {
-      setFees(null);
-    }
-  }, [donationAmount, customAmount]);
-
-  const loadPaymentConfig = async () => {
-    try {
-      const config = await paymentService.getPaymentConfig();
-      setPaymentConfig(config);
-    } catch (error) {
-      console.error('Error loading payment config:', error);
-    }
-  };
-
-  const calculateFees = async () => {
-    try {
-      const amount = getFinalAmount();
-      if (amount >= 5) {
-        const feeData = await paymentService.calculateFees(amount);
-        setFees(feeData);
-      }
-    } catch (error) {
-      console.error('Error calculating fees:', error);
-    }
-  };
-
   const formatCurrency = (amount) => {
-    return paymentService.formatCurrency(amount);
+    return new Intl.NumberFormat('en-MY', {
+      style: 'currency',
+      currency: 'MYR',
+    }).format(amount || 0);
   };
 
   const handleAmountSelect = (amount) => {
-    setDonationAmount(amount.toString());
-    setCustomAmount('');
+    setDonationData({ ...donationData, amount });
     setError('');
-  };
-
-  const handleCustomAmountChange = (e) => {
-    const value = e.target.value;
-    setCustomAmount(value);
-    setDonationAmount(value);
-    setError('');
-  };
-
-  const getFinalAmount = () => {
-    return parseFloat(donationAmount) || 0;
-  };
-
-  const getTotalAmount = () => {
-    const amount = getFinalAmount();
-    const processingFee = fees?.processingFee || 0;
-    return amount + processingFee;
-  };
-
-  const validateAmount = () => {
-    const validation = paymentService.validateDonationAmount(getFinalAmount());
-    if (!validation.valid) {
-      setError(validation.error);
-      return false;
-    }
-    return true;
-  };
-
-  const validateDetails = () => {
-    if (!donorName.trim() && !isAnonymous) {
-      setError('Please enter your name or choose to donate anonymously');
-      return false;
-    }
-
-    if (!donorEmail.trim()) {
-      setError('Email address is required');
-      return false;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(donorEmail)) {
-      setError('Please enter a valid email address');
-      return false;
-    }
-
-    return true;
   };
 
   const handleNext = () => {
-    setError('');
-    
-    if (step === 'amount') {
-      if (validateAmount()) {
-        setStep('details');
-      }
-    } else if (step === 'details') {
-      if (validateDetails()) {
-        setStep('payment');
-      }
+    if (donationData.amount < 5) {
+      setError('Minimum donation amount is RM 5.00');
+      return;
     }
+    if (donationData.amount > 100000) {
+      setError('Maximum donation amount is RM 100,000');
+      return;
+    }
+    if (!donationData.donorEmail) {
+      setError('Email is required');
+      return;
+    }
+    setStep('payment');
   };
 
-  const handleBack = () => {
-    setError('');
-    
-    if (step === 'details') {
-      setStep('amount');
-    } else if (step === 'payment') {
-      setStep('details');
-    }
-  };
-
-  const handlePaymentSubmit = async () => {
-    if (!validateDetails()) return;
-
-    setLoading(true);
-    setError('');
-    setStep('processing');
-
-    try {
-      const donationData = {
-        campaignId: campaign.id,
-        amount: getFinalAmount(),
-        currency: 'MYR',
-        donorName: isAnonymous ? 'Anonymous' : donorName.trim(),
-        donorEmail: donorEmail.trim(),
-        message: message.trim(),
-        isAnonymous,
-        paymentMethod
-      };
-
-      let result;
-
-      if (paymentMethod === 'stripe') {
-        // Create Stripe checkout session
-        result = await paymentService.createCheckoutSession(donationData);
-        
-        if (result.checkoutUrl) {
-          // Redirect to Stripe checkout
-          window.location.href = result.checkoutUrl;
-          return;
-        }
-      } else if (paymentMethod === 'bank_transfer') {
-        // Create donation with bank transfer instructions
-        result = await paymentService.createDonation({
-          ...donationData,
-          paymentMethod: 'bank_transfer'
-        });
-        
-        setStep('success');
-        
-        // Show bank transfer instructions
-        setTimeout(() => {
-          onSuccess({
-            ...result,
-            requiresBankTransfer: true,
-            bankTransferInstructions: result.bankTransferInstructions
-          });
-        }, 2000);
-        return;
-      }
-
-      // Fallback: create donation record
-      result = await paymentService.createDonation(donationData);
-      
-      setStep('success');
-      
-      setTimeout(() => {
-        onSuccess(result);
-      }, 2000);
-
-    } catch (error) {
-      console.error('Payment submission error:', error);
-      setError(error.error || error.message || 'Failed to process donation. Please try again.');
-      setStep('payment');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOverlayClick = (e) => {
-    if (e.target === e.currentTarget && step !== 'processing') {
+  const handlePaymentSuccess = (result) => {
+    setStep('success');
+    setTimeout(() => {
+      onSuccess(result);
       onClose();
+    }, 2000);
+  };
+
+  const handlePaymentError = (errorMessage) => {
+    setError(errorMessage);
+    setStep('amount');
+  };
+
+  const appearance = {
+    theme: 'stripe',
+    variables: {
+      colorPrimary: '#007bff',
+      colorBackground: '#ffffff',
+      colorText: '#30313d',
+      fontFamily: 'system-ui, sans-serif',
+      borderRadius: '8px',
     }
   };
 
-  const renderStepIndicator = () => {
-    const steps = [
-      { id: 'amount', label: 'Amount', icon: '💰' },
-      { id: 'details', label: 'Details', icon: '📝' },
-      { id: 'payment', label: 'Payment', icon: '💳' }
-    ];
-
-    return (
-      <div className="step-indicator">
-        {steps.map((stepItem, index) => (
-          <div key={stepItem.id} className={`step-item ${step === stepItem.id ? 'active' : ''} ${steps.findIndex(s => s.id === step) > index ? 'completed' : ''}`}>
-            <div className="step-circle">
-              {steps.findIndex(s => s.id === step) > index ? '✓' : stepItem.icon}
-            </div>
-            <span className="step-label">{stepItem.label}</span>
-          </div>
-        ))}
-      </div>
-    );
+  const options = {
+    clientSecret,
+    appearance,
   };
 
   const renderAmountStep = () => (
@@ -238,7 +205,7 @@ const DonationModal = ({ campaign, onClose, onSuccess }) => {
           <button
             key={amount}
             type="button"
-            className={`amount-btn ${donationAmount === amount.toString() ? 'selected' : ''}`}
+            className={`amount-btn ${donationData.amount === amount ? 'selected' : ''}`}
             onClick={() => handleAmountSelect(amount)}
           >
             {formatCurrency(amount)}
@@ -254,177 +221,98 @@ const DonationModal = ({ campaign, onClose, onSuccess }) => {
             id="custom-amount"
             type="number"
             min="5"
+            max="100000"
             step="0.01"
             placeholder="0.00"
-            value={customAmount}
-            onChange={handleCustomAmountChange}
+            value={donationData.amount}
+            onChange={(e) => handleAmountSelect(parseFloat(e.target.value) || 0)}
             className="amount-input"
           />
         </div>
       </div>
 
-      {getFinalAmount() > 0 && (
-        <div className="amount-summary">
-          <div className="amount-line">
-            <span>Donation Amount:</span>
-            <span>{formatCurrency(getFinalAmount())}</span>
-          </div>
-          {fees && (
-            <div className="amount-line">
-              <span>Processing Fee:</span>
-              <span>{formatCurrency(fees.processingFee)}</span>
-            </div>
-          )}
-          <div className="amount-line total">
-            <span>Total:</span>
-            <span>{formatCurrency(getTotalAmount())}</span>
-          </div>
-        </div>
-      )}
-
-      {fees && (
-        <div className="fee-notice">
-          <small>
-            Processing fee helps cover payment processing costs. 
-            {fees.platformFeePercentage > 0 && ` Platform fee: ${fees.platformFeePercentage}%`}
-          </small>
-        </div>
-      )}
-    </div>
-  );
-
-  const renderDetailsStep = () => (
-    <div className="donation-step">
-      <h3>Donor Information</h3>
-      
-      <div className="anonymous-toggle">
-        <label className="checkbox-label">
-          <input
-            type="checkbox"
-            checked={isAnonymous}
-            onChange={(e) => setIsAnonymous(e.target.checked)}
-          />
-          <span className="checkmark"></span>
-          Donate anonymously
-        </label>
-      </div>
-
-      {!isAnonymous && (
+      <div className="donor-info">
         <div className="form-group">
-          <label htmlFor="donor-name">Your Name *</label>
+          <label htmlFor="donor-name">Your Name</label>
           <input
             id="donor-name"
             type="text"
-            value={donorName}
-            onChange={(e) => setDonorName(e.target.value)}
+            value={donationData.donorName}
+            onChange={(e) => setDonationData({...donationData, donorName: e.target.value})}
             placeholder="Enter your name"
-            required={!isAnonymous}
           />
         </div>
-      )}
 
-      <div className="form-group">
-        <label htmlFor="donor-email">Email Address *</label>
-        <input
-          id="donor-email"
-          type="email"
-          value={donorEmail}
-          onChange={(e) => setDonorEmail(e.target.value)}
-          placeholder="Enter your email"
-          required
-        />
-        <small>Required for donation receipt and updates</small>
+        <div className="form-group">
+          <label htmlFor="donor-email">Email Address *</label>
+          <input
+            id="donor-email"
+            type="email"
+            value={donationData.donorEmail}
+            onChange={(e) => setDonationData({...donationData, donorEmail: e.target.value})}
+            placeholder="Enter your email"
+            required
+          />
+          <small>Required for donation receipt</small>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="donation-message">Message (Optional)</label>
+          <textarea
+            id="donation-message"
+            value={donationData.message}
+            onChange={(e) => setDonationData({...donationData, message: e.target.value})}
+            placeholder="Leave a message of support..."
+            rows="3"
+            maxLength="500"
+          />
+        </div>
+
+        <div className="anonymous-toggle">
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={donationData.isAnonymous}
+              onChange={(e) => setDonationData({...donationData, isAnonymous: e.target.checked})}
+            />
+            <span className="checkmark"></span>
+            Donate anonymously
+          </label>
+        </div>
       </div>
 
-      <div className="form-group">
-        <label htmlFor="donation-message">Message (Optional)</label>
-        <textarea
-          id="donation-message"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder="Leave a message of support..."
-          rows="3"
-          maxLength="500"
-        />
-        <small>{message.length}/500 characters</small>
+      <div className="donation-summary">
+        <div className="summary-line">
+          <span>Donation Amount:</span>
+          <span>{formatCurrency(donationData.amount)}</span>
+        </div>
+        <div className="summary-line">
+          <span>To Campaign:</span>
+          <span>{campaign.name}</span>
+        </div>
       </div>
     </div>
   );
 
   const renderPaymentStep = () => (
     <div className="donation-step">
-      <h3>Payment Method</h3>
+      <h3>Payment Details</h3>
+      <div className="payment-summary">
+        <p>Donating <strong>{formatCurrency(donationData.amount)}</strong> to "{campaign.name}"</p>
+      </div>
       
-      <div className="payment-methods">
-        {paymentConfig?.stripeEnabled && (
-          <label className="payment-method">
-            <input
-              type="radio"
-              name="paymentMethod"
-              value="stripe"
-              checked={paymentMethod === 'stripe'}
-              onChange={(e) => setPaymentMethod(e.target.value)}
-            />
-            <div className="payment-option">
-              <div className="payment-icon">💳</div>
-              <div className="payment-info">
-                <strong>Credit/Debit Card</strong>
-                <small>Secure payment via Stripe</small>
-              </div>
-            </div>
-          </label>
-        )}
-
-        {paymentConfig?.bankTransferEnabled && (
-          <label className="payment-method">
-            <input
-              type="radio"
-              name="paymentMethod"
-              value="bank_transfer"
-              checked={paymentMethod === 'bank_transfer'}
-              onChange={(e) => setPaymentMethod(e.target.value)}
-            />
-            <div className="payment-option">
-              <div className="payment-icon">🏦</div>
-              <div className="payment-info">
-                <strong>Bank Transfer</strong>
-                <small>Direct bank transfer (manual verification)</small>
-              </div>
-            </div>
-          </label>
-        )}
-      </div>
-
-      <div className="donation-summary">
-        <h4>Donation Summary</h4>
-        <div className="summary-line">
-          <span>To:</span>
-          <span>{campaign.name}</span>
-        </div>
-        <div className="summary-line">
-          <span>Amount:</span>
-          <span>{formatCurrency(getFinalAmount())}</span>
-        </div>
-        <div className="summary-line">
-          <span>Donor:</span>
-          <span>{isAnonymous ? 'Anonymous' : donorName}</span>
-        </div>
-        {message && (
-          <div className="summary-line">
-            <span>Message:</span>
-            <span className="message-preview">"{message.substring(0, 50)}{message.length > 50 ? '...' : ''}"</span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  const renderProcessingStep = () => (
-    <div className="donation-step processing">
-      <LoadingSpinner />
-      <h3>Processing Your Donation</h3>
-      <p>Please wait while we process your generous contribution...</p>
-      <p><small>Do not close this window or refresh the page.</small></p>
+      {stripePromise ? (
+        <Elements stripe={stripePromise} options={options}>
+          <PaymentForm 
+            donationData={donationData}
+            onSuccess={handlePaymentSuccess}
+            onError={handlePaymentError}
+            onClose={onClose}
+          />
+        </Elements>
+      ) : (
+        <div>Loading payment form...</div>
+      )}
     </div>
   );
 
@@ -432,39 +320,25 @@ const DonationModal = ({ campaign, onClose, onSuccess }) => {
     <div className="donation-step success">
       <div className="success-icon">🎉</div>
       <h3>Thank You!</h3>
-      <p>Your donation of <strong>{formatCurrency(getFinalAmount())}</strong> has been received.</p>
+      <p>Your donation of <strong>{formatCurrency(donationData.amount)}</strong> has been received.</p>
       <p>You will receive a confirmation email shortly.</p>
     </div>
   );
 
-  if (step === 'processing') {
-    return (
-      <div className="donation-modal-overlay">
-        <div className="donation-modal processing">
-          {renderProcessingStep()}
-        </div>
-      </div>
-    );
-  }
-
-  if (step === 'success') {
-    return (
-      <div className="donation-modal-overlay">
-        <div className="donation-modal success">
-          {renderSuccessStep()}
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="donation-modal-overlay" onClick={handleOverlayClick}>
+    <div className="donation-modal-overlay" onClick={(e) => {
+      if (e.target === e.currentTarget && step !== 'payment') {
+        onClose();
+      }
+    }}>
       <div className="donation-modal">
         <div className="modal-header">
           <h2>Support "{campaign.name}"</h2>
-          <button className="close-btn" onClick={onClose}>
-            ✕
-          </button>
+          {step !== 'payment' && (
+            <button className="close-btn" onClick={onClose}>
+              ✕
+            </button>
+          )}
         </div>
 
         <div className="modal-content">
@@ -488,65 +362,32 @@ const DonationModal = ({ campaign, onClose, onSuccess }) => {
             </div>
           </div>
 
-          {renderStepIndicator()}
-
           <div className="donation-form">
             {error && <div className="error-message">{error}</div>}
 
             {step === 'amount' && renderAmountStep()}
-            {step === 'details' && renderDetailsStep()}
             {step === 'payment' && renderPaymentStep()}
+            {step === 'success' && renderSuccessStep()}
 
-            <div className="form-actions">
-              {step !== 'amount' && (
-                <button 
-                  type="button" 
-                  className="btn btn-outline"
-                  onClick={handleBack}
-                  disabled={loading}
-                >
-                  Back
-                </button>
-              )}
-              
-              {step === 'amount' && (
+            {step === 'amount' && (
+              <div className="form-actions">
                 <button 
                   type="button" 
                   className="btn btn-outline"
                   onClick={onClose}
-                  disabled={loading}
                 >
                   Cancel
                 </button>
-              )}
-
-              {step !== 'payment' ? (
                 <button 
                   type="button" 
                   className="btn btn-primary btn-large"
                   onClick={handleNext}
-                  disabled={loading || getFinalAmount() <= 0}
+                  disabled={donationData.amount <= 0}
                 >
-                  Continue
+                  Continue to Payment
                 </button>
-              ) : (
-                <button 
-                  type="button" 
-                  className="btn btn-primary btn-large"
-                  onClick={handlePaymentSubmit}
-                  disabled={loading || getFinalAmount() <= 0}
-                >
-                  {loading ? (
-                    <>
-                      <LoadingSpinner />
-                      Processing...
-                    </>
-                  ) : (
-                    `Donate ${formatCurrency(getFinalAmount())}`
-                  )}
-                </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           <div className="donation-notice">
