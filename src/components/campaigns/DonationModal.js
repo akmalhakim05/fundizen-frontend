@@ -9,7 +9,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import '../../styles/components/DonationModal.css';
 
-// Payment Form Component
+// Payment Form Component - Fixed to work with your API
 const PaymentForm = ({ donationData, onSuccess, onError, onClose }) => {
   const stripe = useStripe();
   const elements = useElements();
@@ -27,23 +27,36 @@ const PaymentForm = ({ donationData, onSuccess, onError, onClose }) => {
     setMessage('');
 
     try {
-      // Create donation and payment intent
-      const response = await fetch('/api/payment/donate', {
+      console.log('🔄 Creating donation with your API...');
+      
+      // Step 1: Create donation using your existing API
+      const donationResponse = await fetch('/api/payment/donate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(donationData)
+        body: JSON.stringify({
+          campaignId: donationData.campaignId,
+          amount: donationData.amount,
+          donorName: donationData.donorName,
+          donorEmail: donationData.donorEmail,
+          donorId: donationData.donorId || null, // Optional
+          message: donationData.message || '', // Optional
+          isAnonymous: donationData.isAnonymous,
+          receiveUpdates: donationData.receiveUpdates
+        })
       });
 
-      const donationResult = await response.json();
-
+      const donationResult = await donationResponse.json();
+      
       if (!donationResult.success) {
-        throw new Error(donationResult.error);
+        throw new Error(donationResult.error || 'Failed to create donation');
       }
 
-      // Confirm payment
+      console.log('✅ Donation created:', donationResult);
+
+      // Step 2: Confirm payment with Stripe using the clientSecret from your API
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
-        clientSecret: donationResult.payment.clientSecret,
+        clientSecret: donationResult.payment.clientSecret, // Your API should return this
         confirmParams: {
           return_url: `${window.location.origin}/donation/success`,
           payment_method_data: {
@@ -57,15 +70,29 @@ const PaymentForm = ({ donationData, onSuccess, onError, onClose }) => {
       });
 
       if (error) {
-        onError(error.message);
+        console.error('❌ Stripe payment error:', error);
+        onError(`Payment failed: ${error.message}`);
       } else if (paymentIntent.status === 'succeeded') {
+        console.log('✅ Payment succeeded:', paymentIntent.id);
         onSuccess(donationResult);
       } else if (paymentIntent.status === 'requires_action') {
         setMessage('Please complete the additional authentication step.');
+      } else {
+        console.warn('⚠️ Unexpected payment status:', paymentIntent.status);
+        setMessage(`Payment status: ${paymentIntent.status}`);
       }
 
     } catch (error) {
-      onError(error.message);
+      console.error('❌ Payment process error:', error);
+      
+      // Better error handling for different scenarios
+      if (error.message.includes('<!DOCTYPE')) {
+        onError('Backend API not available. Please check if your server is running.');
+      } else if (error.message.includes('404')) {
+        onError('Payment endpoint not found. Please check your API configuration.');
+      } else {
+        onError(error.message || 'Payment process failed');
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -108,31 +135,61 @@ const PaymentForm = ({ donationData, onSuccess, onError, onClose }) => {
 // Main Donation Modal Component
 const DonationModal = ({ campaign, onClose, onSuccess }) => {
   const { currentUser } = useAuth();
-  const [step, setStep] = useState('amount'); // amount, payment, success
+  const [step, setStep] = useState('amount');
   const [stripePromise, setStripePromise] = useState(null);
   const [donationData, setDonationData] = useState({
     campaignId: campaign.id || campaign._id,
     amount: 50,
     donorName: currentUser?.username || '',
     donorEmail: currentUser?.email || '',
+    donorId: currentUser?.id || currentUser?._id || null, // Include donorId if available
     message: '',
-    isAnonymous: false
+    isAnonymous: false,
+    receiveUpdates: true // Default to true as per your API
   });
   const [error, setError] = useState('');
   const [clientSecret, setClientSecret] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const predefinedAmounts = [25, 50, 100, 250, 500, 1000];
 
   useEffect(() => {
-    // Initialize Stripe
+    // Initialize Stripe - Get config from your existing API
     const initializeStripe = async () => {
       try {
+        console.log('🔄 Getting Stripe configuration...');
+        
+        // Try to get config from your API (if this endpoint exists)
         const response = await fetch('/api/payment/config');
-        const config = await response.json();
-        setStripePromise(loadStripe(config.config.publishableKey));
+        
+        if (response.ok) {
+          const config = await response.json();
+          if (config.success && config.config?.publishableKey) {
+            const stripeInstance = await loadStripe(config.config.publishableKey);
+            setStripePromise(stripeInstance);
+            console.log('✅ Stripe initialized from API config');
+            return;
+          }
+        }
+        
+        // Fallback: Use environment variable or hardcoded test key
+        const publishableKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
+        
+        if (publishableKey) {
+          const stripeInstance = await loadStripe(publishableKey);
+          setStripePromise(stripeInstance);
+          console.log('✅ Stripe initialized from environment variable');
+        } else {
+          // For testing only - replace with your actual test key
+          console.warn('⚠️ No Stripe key found. Using test key for development.');
+          const testKey = 'pk_test_51234567890'; // Replace with your actual test key
+          const stripeInstance = await loadStripe(testKey);
+          setStripePromise(stripeInstance);
+        }
+        
       } catch (error) {
-        console.error('Error loading Stripe:', error);
-        setError('Failed to load payment system');
+        console.error('❌ Error initializing Stripe:', error);
+        setError(`Failed to load payment system: ${error.message}`);
       }
     };
 
@@ -152,18 +209,22 @@ const DonationModal = ({ campaign, onClose, onSuccess }) => {
   };
 
   const handleNext = () => {
-    if (donationData.amount < 5) {
-      setError('Minimum donation amount is RM 5.00');
+    // Validation
+    if (donationData.amount < 1 || donationData.amount > 100000) {
+      setError('Amount must be between RM 1.00 and RM 100,000');
       return;
     }
-    if (donationData.amount > 100000) {
-      setError('Maximum donation amount is RM 100,000');
+    
+    if (!donationData.donorName.trim()) {
+      setError('Name is required');
       return;
     }
-    if (!donationData.donorEmail) {
+    
+    if (!donationData.donorEmail.trim()) {
       setError('Email is required');
       return;
     }
+
     setStep('payment');
   };
 
@@ -177,7 +238,7 @@ const DonationModal = ({ campaign, onClose, onSuccess }) => {
 
   const handlePaymentError = (errorMessage) => {
     setError(errorMessage);
-    setStep('amount');
+    setStep('amount'); // Go back to amount step
   };
 
   const appearance = {
@@ -189,11 +250,6 @@ const DonationModal = ({ campaign, onClose, onSuccess }) => {
       fontFamily: 'system-ui, sans-serif',
       borderRadius: '8px',
     }
-  };
-
-  const options = {
-    clientSecret,
-    appearance,
   };
 
   const renderAmountStep = () => (
@@ -220,7 +276,7 @@ const DonationModal = ({ campaign, onClose, onSuccess }) => {
           <input
             id="custom-amount"
             type="number"
-            min="5"
+            min="1"
             max="100000"
             step="0.01"
             placeholder="0.00"
@@ -229,17 +285,19 @@ const DonationModal = ({ campaign, onClose, onSuccess }) => {
             className="amount-input"
           />
         </div>
+        <small>Amount between RM 1.00 and RM 100,000</small>
       </div>
 
       <div className="donor-info">
         <div className="form-group">
-          <label htmlFor="donor-name">Your Name</label>
+          <label htmlFor="donor-name">Your Name *</label>
           <input
             id="donor-name"
             type="text"
             value={donationData.donorName}
             onChange={(e) => setDonationData({...donationData, donorName: e.target.value})}
             placeholder="Enter your name"
+            required
           />
         </div>
 
@@ -268,7 +326,7 @@ const DonationModal = ({ campaign, onClose, onSuccess }) => {
           />
         </div>
 
-        <div className="anonymous-toggle">
+        <div className="checkbox-group">
           <label className="checkbox-label">
             <input
               type="checkbox"
@@ -277,6 +335,16 @@ const DonationModal = ({ campaign, onClose, onSuccess }) => {
             />
             <span className="checkmark"></span>
             Donate anonymously
+          </label>
+          
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={donationData.receiveUpdates}
+              onChange={(e) => setDonationData({...donationData, receiveUpdates: e.target.checked})}
+            />
+            <span className="checkmark"></span>
+            Receive campaign updates via email
           </label>
         </div>
       </div>
@@ -290,6 +358,10 @@ const DonationModal = ({ campaign, onClose, onSuccess }) => {
           <span>To Campaign:</span>
           <span>{campaign.name}</span>
         </div>
+        <div className="summary-line">
+          <span>Donor:</span>
+          <span>{donationData.isAnonymous ? 'Anonymous' : donationData.donorName}</span>
+        </div>
       </div>
     </div>
   );
@@ -299,10 +371,19 @@ const DonationModal = ({ campaign, onClose, onSuccess }) => {
       <h3>Payment Details</h3>
       <div className="payment-summary">
         <p>Donating <strong>{formatCurrency(donationData.amount)}</strong> to "{campaign.name}"</p>
+        {donationData.message && (
+          <p><em>Message: "{donationData.message}"</em></p>
+        )}
       </div>
       
       {stripePromise ? (
-        <Elements stripe={stripePromise} options={options}>
+        <Elements 
+          stripe={stripePromise} 
+          options={{
+            // Note: clientSecret will be obtained from your /api/payment/donate endpoint
+            appearance: appearance
+          }}
+        >
           <PaymentForm 
             donationData={donationData}
             onSuccess={handlePaymentSuccess}
@@ -363,7 +444,21 @@ const DonationModal = ({ campaign, onClose, onSuccess }) => {
           </div>
 
           <div className="donation-form">
-            {error && <div className="error-message">{error}</div>}
+            {error && (
+              <div className="error-message">
+                <strong>Error:</strong> {error}
+                {error.includes('Backend API not available') && (
+                  <div style={{ marginTop: '10px', fontSize: '12px' }}>
+                    <p>Troubleshooting steps:</p>
+                    <ol>
+                      <li>Make sure your backend server is running</li>
+                      <li>Check if <code>/api/payment/donate</code> endpoint exists</li>
+                      <li>Verify CORS settings allow requests from localhost:3000</li>
+                    </ol>
+                  </div>
+                )}
+              </div>
+            )}
 
             {step === 'amount' && renderAmountStep()}
             {step === 'payment' && renderPaymentStep()}
@@ -375,6 +470,7 @@ const DonationModal = ({ campaign, onClose, onSuccess }) => {
                   type="button" 
                   className="btn btn-outline"
                   onClick={onClose}
+                  disabled={loading}
                 >
                   Cancel
                 </button>
@@ -382,9 +478,9 @@ const DonationModal = ({ campaign, onClose, onSuccess }) => {
                   type="button" 
                   className="btn btn-primary btn-large"
                   onClick={handleNext}
-                  disabled={donationData.amount <= 0}
+                  disabled={donationData.amount <= 0 || loading}
                 >
-                  Continue to Payment
+                  {loading ? 'Loading...' : 'Continue to Payment'}
                 </button>
               </div>
             )}
