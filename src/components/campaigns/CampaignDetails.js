@@ -4,7 +4,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { campaignService } from '../../services/campaignService';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorMessage from '../common/ErrorMessage';
-import DonationModal from './DonationModal';
 import ShareModal from './ShareModal';
 import '../../styles/components/CampaignDetails.css';
 
@@ -16,7 +15,6 @@ const CampaignDetails = () => {
   const [campaign, setCampaign] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showDonationModal, setShowDonationModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [activeTab, setActiveTab] = useState('description');
   const [donateLoading, setDonateLoading] = useState(false);
@@ -71,20 +69,31 @@ const CampaignDetails = () => {
   const getStatusInfo = () => {
     if (!campaign) return { status: 'unknown', label: 'Unknown', color: '#6c757d' };
     
-    const daysRemaining = getDaysRemaining();
-    
+    // Check verification status
     if (!campaign.verified) {
-      return { status: 'pending', label: 'UNDER REVIEW', color: '#6c757d' };
+      return { status: 'pending', label: 'UNDER REVIEW', color: '#ffc107' };
     }
     
-    if (!campaign.isActive) {
-      return { status: 'inactive', label: 'INACTIVE', color: '#6c757d' };
+    // Check campaign status - YOUR BACKEND USES 'status' FIELD, NOT 'isActive'
+    // Backend statuses: "pending", "approved", "rejected"
+    if (campaign.status !== 'approved') {
+      return { status: 'inactive', label: 'NOT APPROVED', color: '#6c757d' };
     }
     
+    // Check if campaign has ended
+    const daysRemaining = getDaysRemaining();
     if (daysRemaining <= 0) {
       return { status: 'ended', label: 'CAMPAIGN ENDED', color: '#dc3545' };
     }
     
+    // Check if campaign hasn't started yet
+    const today = new Date();
+    const startDate = new Date(campaign.startDate);
+    if (startDate > today) {
+      return { status: 'upcoming', label: 'COMING SOON', color: '#17a2b8' };
+    }
+    
+    // Campaign is active and can receive donations
     const progressPercentage = getProgressPercentage();
     if (progressPercentage >= 100) {
       return { status: 'funded', label: 'FULLY FUNDED', color: '#28a745' };
@@ -94,28 +103,12 @@ const CampaignDetails = () => {
   };
 
   const handleDonate = async () => {
-    if (!currentUser) {
-      navigate('/login', { 
-        state: { 
-          message: 'Please login to donate to this campaign.',
-          returnUrl: `/campaign/${id}`
-        }
-      });
-      return;
-    }
-    
-    if (!currentUser.emailVerified) {
-      navigate('/verify-email', {
-        state: { message: 'Please verify your email to donate to campaigns.' }
-      });
-      return;
-    }
-    
     setDonateLoading(true);
     // Small delay to show loading state
     setTimeout(() => {
       setDonateLoading(false);
-      setShowDonationModal(true);
+      // Simple alert for now - no actual functionality
+      alert('Donate functionality coming soon!');
     }, 300);
   };
 
@@ -125,7 +118,7 @@ const CampaignDetails = () => {
   };
 
   const isCreator = () => {
-    return currentUser && campaign && currentUser.id === campaign.creatorId;
+    return currentUser && campaign && (currentUser.id === campaign.creatorId || currentUser._id === campaign.creatorId);
   };
 
   const getUrgencyLevel = () => {
@@ -448,17 +441,6 @@ const CampaignDetails = () => {
       </div>
 
       {/* Modals */}
-      {showDonationModal && (
-        <DonationModal 
-          campaign={campaign}
-          onClose={() => setShowDonationModal(false)}
-          onSuccess={(donation) => {
-            setShowDonationModal(false);
-            fetchCampaignDetails();
-          }}
-        />
-      )}
-
       {showShareModal && (
         <ShareModal 
           campaign={campaign}
