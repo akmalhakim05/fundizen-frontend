@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import AdminLogin from './components/admin/AdminLogin';
 import AdminDashboard from './components/admin/AdminDashboard';
 import AdminCampaignManagement from './components/admin/AdminCampaignManagement';
+import AdminUserManagement from './components/admin/AdminUserManagement';
 import AdminRoute from './components/admin/AdminRoute';
 
 function App() {
@@ -26,6 +27,14 @@ function App() {
               element={
                 <AdminRoute>
                   <AdminCampaignManagement />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/admin/users" 
+              element={
+                <AdminRoute>
+                  <AdminUserManagement />
                 </AdminRoute>
               } 
             />

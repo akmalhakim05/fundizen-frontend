@@ -14,6 +14,190 @@ export const adminService = {
     }
   },
 
+  // ===== USER MANAGEMENT ENDPOINTS =====
+
+  // Get all users with pagination and filters (admin panel)
+  getAllUsersForAdmin: async (filters = {}) => {
+    try {
+      const response = await api.get('/admin/users', { params: filters });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching users for admin:', error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get basic user list (public endpoint)
+  getAllUsers: async (params = {}) => {
+    try {
+      const response = await api.get('/users', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get users by role
+  getUsersByRole: async (role) => {
+    try {
+      const response = await api.get(`/users/role/${role}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching users by role ${role}:`, error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Search users
+  searchUsers: async (query) => {
+    try {
+      const response = await api.get('/users/search', { params: { q: query } });
+      return response.data;
+    } catch (error) {
+      console.error('Error searching users:', error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get user details by ID
+  getUserDetails: async (userId) => {
+    try {
+      const response = await api.get(`/admin/users/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching user details for ${userId}:`, error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get basic user info
+  getUserById: async (userId) => {
+    try {
+      const response = await api.get(`/users/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching user ${userId}:`, error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Promote user to admin
+  promoteUserToAdmin: async (userId) => {
+    try {
+      const response = await api.post(`/admin/users/${userId}/promote`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error promoting user ${userId}:`, error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Demote admin to user
+  demoteAdminToUser: async (userId) => {
+    try {
+      const response = await api.post(`/admin/users/${userId}/demote`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error demoting user ${userId}:`, error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Delete user (if this endpoint exists in your backend)
+  deleteUser: async (userId) => {
+    try {
+      const response = await api.delete(`/admin/users/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error deleting user ${userId}:`, error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Bulk update user roles
+  bulkUpdateUserRoles: async (userIds, newRole) => {
+    try {
+      // Since your backend doesn't have bulk endpoints yet, 
+      // we'll simulate it by calling individual promote/demote endpoints
+      const promises = userIds.map(userId => {
+        if (newRole === 'admin') {
+          return adminService.promoteUserToAdmin(userId);
+        } else {
+          return adminService.demoteAdminToUser(userId);
+        }
+      });
+      
+      const results = await Promise.allSettled(promises);
+      
+      const successCount = results.filter(r => r.status === 'fulfilled').length;
+      const failureCount = results.filter(r => r.status === 'rejected').length;
+      
+      return {
+        totalProcessed: userIds.length,
+        successCount,
+        failureCount,
+        newRole,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Error bulk updating user roles:', error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Bulk update user verification status
+  bulkUpdateUserVerification: async (userIds, verified) => {
+    try {
+      // Since your backend doesn't have bulk verification endpoints yet,
+      // we'll simulate this functionality. You'll need to implement these endpoints
+      // in your backend: PUT /admin/users/{id}/verify and PUT /admin/users/{id}/unverify
+      const endpoint = verified ? 'verify' : 'unverify';
+      
+      const promises = userIds.map(userId =>
+        api.put(`/admin/users/${userId}/${endpoint}`)
+      );
+      
+      const results = await Promise.allSettled(promises);
+      
+      const successCount = results.filter(r => r.status === 'fulfilled').length;
+      const failureCount = results.filter(r => r.status === 'rejected').length;
+      
+      return {
+        totalProcessed: userIds.length,
+        successCount,
+        failureCount,
+        verified,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Error bulk updating user verification:', error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get user statistics
+  getUserStatistics: async () => {
+    try {
+      const response = await api.get('/users/stats');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching user statistics:', error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get recent users
+  getRecentUsers: async (days = 30) => {
+    try {
+      const response = await api.get('/users/recent', { params: { days } });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching recent users:', error);
+      throw error.response?.data || error.message;
+    }
+  },
+
   // ===== CAMPAIGN MANAGEMENT =====
 
   // Get all campaigns for admin review (with pagination and filters)
@@ -63,8 +247,6 @@ export const adminService = {
   // Bulk approve multiple campaigns
   bulkApproveCampaigns: async (campaignIds) => {
     try {
-      // Since your backend doesn't have bulk endpoints yet, 
-      // we'll simulate it by calling individual approve endpoints
       const results = await Promise.allSettled(
         campaignIds.map(id => adminService.approveCampaign(id))
       );
@@ -87,8 +269,6 @@ export const adminService = {
   // Bulk reject multiple campaigns
   bulkRejectCampaigns: async (campaignIds, reason = '') => {
     try {
-      // Since your backend doesn't have bulk endpoints yet, 
-      // we'll simulate it by calling individual reject endpoints
       const results = await Promise.allSettled(
         campaignIds.map(id => adminService.rejectCampaign(id, reason))
       );

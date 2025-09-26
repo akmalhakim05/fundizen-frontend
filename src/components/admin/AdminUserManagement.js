@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { adminService } from '../../services/adminService';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorMessage from '../common/ErrorMessage';
 import '../../styles/components/AdminUserManagement.css';
 
 const AdminUserManagement = () => {
+  // State management
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -22,7 +23,10 @@ const AdminUserManagement = () => {
   });
   const [pagination, setPagination] = useState(null);
   const [userDetails, setUserDetails] = useState({});
+  const [userStats, setUserStats] = useState(null);
+  const [recentUsers, setRecentUsers] = useState([]);
 
+  // Debounced search effect
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setFilters(prev => ({ ...prev, search: searchTerm, page: 0 }));
@@ -31,11 +35,19 @@ const AdminUserManagement = () => {
     return () => clearTimeout(timeoutId);
   }, [searchTerm]);
 
+  // Fetch users when filters change
   useEffect(() => {
     fetchUsers();
   }, [filters]);
 
-  const fetchUsers = async () => {
+  // Initial data loading
+  useEffect(() => {
+    fetchUserStats();
+    fetchRecentUsers();
+  }, []);
+
+  // Fetch functions
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -47,6 +59,24 @@ const AdminUserManagement = () => {
       setError('Failed to load users');
     } finally {
       setLoading(false);
+    }
+  }, [filters]);
+
+  const fetchUserStats = async () => {
+    try {
+      const stats = await adminService.getUserStatistics();
+      setUserStats(stats);
+    } catch (error) {
+      console.error('Error fetching user stats:', error);
+    }
+  };
+
+  const fetchRecentUsers = async () => {
+    try {
+      const recent = await adminService.getRecentUsers(7);
+      setRecentUsers(recent.users || []);
+    } catch (error) {
+      console.error('Error fetching recent users:', error);
     }
   };
 
@@ -63,13 +93,14 @@ const AdminUserManagement = () => {
     }
   };
 
+  // User action handlers
   const handlePromoteUser = async (userId) => {
-    // eslint-disable-next-line no-restricted-globals
-    if (!confirm('Are you sure you want to promote this user to admin?')) return;
+    if (!window.confirm('Are you sure you want to promote this user to admin?')) return;
 
     try {
       await adminService.promoteUserToAdmin(userId);
       fetchUsers();
+      fetchUserStats();
       alert('User promoted to admin successfully!');
     } catch (error) {
       console.error('Error promoting user:', error);
@@ -78,12 +109,12 @@ const AdminUserManagement = () => {
   };
 
   const handleDemoteUser = async (userId) => {
-    // eslint-disable-next-line no-restricted-globals
-    if (!confirm('Are you sure you want to demote this admin to regular user?')) return;
+    if (!window.confirm('Are you sure you want to demote this admin to regular user?')) return;
 
     try {
       await adminService.demoteAdminToUser(userId);
       fetchUsers();
+      fetchUserStats();
       alert('User demoted successfully!');
     } catch (error) {
       console.error('Error demoting user:', error);
@@ -92,12 +123,12 @@ const AdminUserManagement = () => {
   };
 
   const handleDeleteUser = async (userId) => {
-    // eslint-disable-next-line no-restricted-globals
-    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
+    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
 
     try {
       await adminService.deleteUser(userId);
       fetchUsers();
+      fetchUserStats();
       alert('User deleted successfully!');
     } catch (error) {
       console.error('Error deleting user:', error);
@@ -105,23 +136,24 @@ const AdminUserManagement = () => {
     }
   };
 
+  // Bulk action handlers
   const handleBulkRoleUpdate = async (newRole) => {
     if (selectedUsers.length === 0) {
       alert('Please select users to update');
       return;
     }
 
-    // eslint-disable-next-line no-restricted-globals
-    if (!confirm(`Are you sure you want to change the role of ${selectedUsers.length} users to ${newRole}?`)) {
+    if (!window.confirm(`Are you sure you want to change the role of ${selectedUsers.length} users to ${newRole}?`)) {
       return;
     }
 
     try {
       setBulkActionLoading(true);
-      await adminService.bulkUpdateUserRoles(selectedUsers, newRole);
+      const result = await adminService.bulkUpdateUserRoles(selectedUsers, newRole);
       setSelectedUsers([]);
       fetchUsers();
-      alert('User roles updated successfully!');
+      fetchUserStats();
+      alert(`User roles updated successfully! ${result.successCount} succeeded, ${result.failureCount} failed.`);
     } catch (error) {
       console.error('Error updating user roles:', error);
       alert('Failed to update user roles: ' + (error.error || error.message));
@@ -137,17 +169,16 @@ const AdminUserManagement = () => {
     }
 
     const action = verified ? 'verify' : 'unverify';
-    // eslint-disable-next-line no-restricted-globals
-    if (!confirm(`Are you sure you want to ${action} ${selectedUsers.length} users?`)) {
+    if (!window.confirm(`Are you sure you want to ${action} ${selectedUsers.length} users?`)) {
       return;
     }
 
     try {
       setBulkActionLoading(true);
-      await adminService.bulkUpdateUserVerification(selectedUsers, verified);
+      const result = await adminService.bulkUpdateUserVerification(selectedUsers, verified);
       setSelectedUsers([]);
       fetchUsers();
-      alert(`Users ${action}ed successfully!`);
+      alert(`Users ${action}ed successfully! ${result.successCount} succeeded, ${result.failureCount} failed.`);
     } catch (error) {
       console.error('Error updating user verification:', error);
       alert(`Failed to ${action} users: ` + (error.error || error.message));
@@ -156,6 +187,7 @@ const AdminUserManagement = () => {
     }
   };
 
+  // Selection handlers
   const handleSelectUser = (userId, isSelected) => {
     if (isSelected) {
       setSelectedUsers([...selectedUsers, userId]);
@@ -172,6 +204,49 @@ const AdminUserManagement = () => {
     }
   };
 
+  // Search and export handlers
+  const handleQuickSearch = async (searchType) => {
+    try {
+      setLoading(true);
+      let results = [];
+      
+      switch (searchType) {
+        case 'admins':
+          results = await adminService.getUsersByRole('admin');
+          break;
+        case 'recent':
+          const recentData = await adminService.getRecentUsers(30);
+          results = recentData.users || [];
+          break;
+        case 'unverified':
+          setFilters(prev => ({ ...prev, verified: 'false', page: 0 }));
+          return;
+        default:
+          return;
+      }
+      
+      // Update the users list with search results
+      setUsers(results);
+      setPagination(null); // Clear pagination for search results
+    } catch (error) {
+      console.error(`Error performing quick search ${searchType}:`, error);
+      setError(`Failed to search ${searchType}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportUsers = async () => {
+    try {
+      await adminService.exportData('users', 'csv');
+      alert('User data exported successfully!');
+    } catch (error) {
+      console.error('Error exporting users:', error);
+      alert('Failed to export user data: ' + (error.error || error.message));
+    }
+  };
+
+  // Utility functions
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-MY', {
       year: 'numeric',
@@ -182,22 +257,108 @@ const AdminUserManagement = () => {
     });
   };
 
+  // Render loading state
   if (loading && users.length === 0) {
     return <LoadingSpinner message="Loading users..." />;
   }
 
+  // Render error state
   if (error && users.length === 0) {
     return <ErrorMessage message={error} onRetry={fetchUsers} />;
   }
 
   return (
     <div className="admin-user-management">
+      {/* Header Section */}
       <div className="user-management-header">
         <h2>👥 User Management</h2>
         <p>Manage user accounts, roles, and permissions</p>
       </div>
 
-      {/* Search and Filters */}
+      {/* Statistics Section */}
+      <div className="user-stats-section">
+        <div className="stats-grid">
+          <div className="stat-card total-users">
+            <div className="stat-icon">👥</div>
+            <div className="stat-content">
+              <h3>Total Users</h3>
+              <div className="stat-number">{userStats?.totalUsers || 0}</div>
+              <div className="stat-description">Registered users</div>
+            </div>
+          </div>
+          
+          <div className="stat-card admin-users">
+            <div className="stat-icon">👑</div>
+            <div className="stat-content">
+              <h3>Administrators</h3>
+              <div className="stat-number">{userStats?.adminUsers || 0}</div>
+              <div className="stat-description">Admin accounts</div>
+            </div>
+          </div>
+          
+          <div className="stat-card recent-users">
+            <div className="stat-icon">📈</div>
+            <div className="stat-content">
+              <h3>Recent Users</h3>
+              <div className="stat-number">{recentUsers.length}</div>
+              <div className="stat-description">This week</div>
+            </div>
+          </div>
+          
+          <div className="stat-card selected-users">
+            <div className="stat-icon">✅</div>
+            <div className="stat-content">
+              <h3>Selected</h3>
+              <div className="stat-number">{selectedUsers.length}</div>
+              <div className="stat-description">Users selected</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Actions Section */}
+      <div className="quick-actions-section">
+        <h3>🚀 Quick Actions</h3>
+        <div className="quick-action-buttons">
+          <button 
+            onClick={() => handleQuickSearch('admins')} 
+            className="quick-action-btn"
+            disabled={loading}
+          >
+            👑 View All Admins
+          </button>
+          <button 
+            onClick={() => handleQuickSearch('recent')} 
+            className="quick-action-btn"
+            disabled={loading}
+          >
+            📅 Recent Users (30 days)
+          </button>
+          <button 
+            onClick={() => handleQuickSearch('unverified')} 
+            className="quick-action-btn"
+            disabled={loading}
+          >
+            ⚠️ Unverified Users
+          </button>
+          <button 
+            onClick={handleExportUsers} 
+            className="quick-action-btn"
+            disabled={loading}
+          >
+            📊 Export Users
+          </button>
+          <button 
+            onClick={fetchUsers} 
+            className="quick-action-btn"
+            disabled={loading}
+          >
+            🔄 Refresh All
+          </button>
+        </div>
+      </div>
+
+      {/* Search and Filters Section */}
       <div className="user-controls">
         <div className="user-search">
           <input
@@ -242,8 +403,19 @@ const AdminUserManagement = () => {
             <option value="email-asc">Email A-Z</option>
             <option value="email-desc">Email Z-A</option>
           </select>
+
+          <select 
+            value={filters.size}
+            onChange={(e) => setFilters({...filters, size: parseInt(e.target.value), page: 0})}
+          >
+            <option value="10">10 per page</option>
+            <option value="20">20 per page</option>
+            <option value="50">50 per page</option>
+            <option value="100">100 per page</option>
+          </select>
         </div>
 
+        {/* Bulk Actions */}
         <div className="bulk-actions">
           {selectedUsers.length > 0 && (
             <>
@@ -278,12 +450,19 @@ const AdminUserManagement = () => {
               >
                 ⚠️ Unverify
               </button>
+              <button 
+                onClick={() => setSelectedUsers([])}
+                disabled={bulkActionLoading}
+                className="bulk-btn clear"
+              >
+                ❌ Clear Selection
+              </button>
             </>
           )}
         </div>
       </div>
 
-      {/* User List */}
+      {/* User List Section */}
       <div className="user-list">
         <div className="user-list-header">
           <label className="select-all">
@@ -296,6 +475,7 @@ const AdminUserManagement = () => {
           </label>
           <span className="user-count">
             {users.length} users found
+            {pagination && ` (Page ${pagination.currentPage + 1} of ${pagination.totalPages})`}
           </span>
         </div>
 
@@ -307,6 +487,9 @@ const AdminUserManagement = () => {
           <div className="no-users">
             <h3>No users found</h3>
             <p>No users match the current search and filters.</p>
+            <button onClick={fetchUsers} className="retry-button">
+              Refresh
+            </button>
           </div>
         )}
 
@@ -338,9 +521,10 @@ const AdminUserManagement = () => {
               ← Previous
             </button>
             
-            <span className="pagination-info">
-              Page {filters.page + 1} of {pagination.totalPages}
-            </span>
+            <div className="pagination-info">
+              <span>Page {filters.page + 1} of {pagination.totalPages}</span>
+              <span>({pagination.totalElements} total users)</span>
+            </div>
             
             <button
               onClick={() => setFilters({...filters, page: Math.min(pagination.totalPages - 1, filters.page + 1)})}
@@ -402,11 +586,11 @@ const UserCard = ({
 
       <div className="user-card-content">
         <div className="user-avatar">
-          <span>{user.username ? user.username[0].toUpperCase() : '?'}</span>
+          <span>{user.username ? user.username[0].toUpperCase() : user.email[0].toUpperCase()}</span>
         </div>
 
         <div className="user-details">
-          <h3 className="user-name">{user.username}</h3>
+          <h3 className="user-name">{user.username || 'No username'}</h3>
           <p className="user-email">{user.email}</p>
           
           <div className="user-meta">
@@ -420,6 +604,10 @@ const UserCard = ({
                 <span className="meta-value">{formatDate(user.updatedAt)}</span>
               </div>
             )}
+            <div className="meta-item">
+              <span className="meta-label">User ID:</span>
+              <span className="meta-value">{user.id}</span>
+            </div>
           </div>
 
           {showDetails && userDetails && (
@@ -454,6 +642,31 @@ const UserCard = ({
                         </span>
                       </div>
                     ))}
+                    {userDetails.campaigns.length > 3 && (
+                      <div className="campaign-item more-campaigns">
+                        <span className="campaign-name">
+                          +{userDetails.campaigns.length - 3} more campaigns
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {userDetails.user && (
+                <div className="detail-section">
+                  <h4>🔍 Additional Info</h4>
+                  <div className="additional-info">
+                    <div className="info-item">
+                      <span className="info-label">Firebase UID:</span>
+                      <span className="info-value">{userDetails.user.uid || 'N/A'}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label">Account Type:</span>
+                      <span className="info-value">
+                        {userDetails.user.isAdmin ? 'Administrator' : 'Regular User'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
@@ -476,6 +689,7 @@ const UserCard = ({
           <button 
             onClick={onPromote}
             className="action-btn promote"
+            title="Promote to Administrator"
           >
             👑 Promote
           </button>
@@ -485,6 +699,7 @@ const UserCard = ({
           <button 
             onClick={onDemote}
             className="action-btn demote"
+            title="Demote to Regular User"
           >
             👤 Demote
           </button>
@@ -493,6 +708,7 @@ const UserCard = ({
         <button 
           onClick={onDelete}
           className="action-btn delete"
+          title="Delete User Account"
         >
           🗑️ Delete
         </button>

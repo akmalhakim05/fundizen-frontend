@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorMessage from '../common/ErrorMessage';
+import AdminUserManagement from './AdminUserManagement';
 import { adminService } from '../../services/adminService';
 import '../../styles/components/AdminDashboard.css';
 
@@ -35,8 +36,10 @@ const AdminDashboard = () => {
     }
   };
 
+  // Updated tabs array with User Management between Overview and Campaigns
   const tabs = [
     { id: 'overview', label: 'Overview', icon: '📊' },
+    { id: 'users', label: 'User Management', icon: '👥' },
     { id: 'campaigns', label: 'Campaigns', icon: '📋' },
     { id: 'pending', label: 'Pending Approvals', icon: '⏳' },
     { id: 'analytics', label: 'Analytics', icon: '📈' },
@@ -47,6 +50,8 @@ const AdminDashboard = () => {
     switch (activeTab) {
       case 'overview':
         return <OverviewTab data={dashboardData} onRefresh={fetchDashboardData} />;
+      case 'users':
+        return <AdminUserManagement />;
       case 'campaigns':
         return <CampaignsTab />;
       case 'pending':
@@ -84,7 +89,7 @@ const AdminDashboard = () => {
     <div className="admin-dashboard">
       <div className="admin-header">
         <h1>🛠️ Admin Dashboard</h1>
-        <p>Manage campaigns and system settings</p>
+        <p>Manage users, campaigns, and system settings</p>
         <div className="admin-user-info">
           <span>Welcome, {userData?.username || currentUser?.email}</span>
           <span className="admin-badge">Administrator</span>
@@ -116,6 +121,36 @@ const AdminDashboard = () => {
 
 // Overview Tab Component
 const OverviewTab = ({ data, onRefresh }) => {
+  const [userStats, setUserStats] = useState(null);
+  const [recentUsers, setRecentUsers] = useState([]);
+  const [statsLoading, setStatsLoading] = useState(false);
+
+  useEffect(() => {
+    fetchUserStats();
+    fetchRecentUsers();
+  }, []);
+
+  const fetchUserStats = async () => {
+    try {
+      setStatsLoading(true);
+      const stats = await adminService.getUserStatistics();
+      setUserStats(stats);
+    } catch (error) {
+      console.error('Error fetching user stats:', error);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  const fetchRecentUsers = async () => {
+    try {
+      const recent = await adminService.getRecentUsers(7);
+      setRecentUsers(recent.users || []);
+    } catch (error) {
+      console.error('Error fetching recent users:', error);
+    }
+  };
+
   if (!data) return <LoadingSpinner message="Loading overview..." />;
 
   return (
@@ -137,6 +172,21 @@ const OverviewTab = ({ data, onRefresh }) => {
               <span>Active: {data.campaigns?.active || 0}</span>
               <span>Pending: {data.campaigns?.pending || 0}</span>
               <span>Approved: {data.campaigns?.approved || 0}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="stat-card users">
+          <div className="stat-icon">👥</div>
+          <div className="stat-content">
+            <h3>Users</h3>
+            <div className="stat-number">
+              {statsLoading ? '...' : (userStats?.totalUsers || 0)}
+            </div>
+            <div className="stat-breakdown">
+              <span>Total Users: {userStats?.totalUsers || 0}</span>
+              <span>Admins: {userStats?.adminUsers || 0}</span>
+              <span>This Week: {recentUsers.length}</span>
             </div>
           </div>
         </div>
@@ -163,30 +213,27 @@ const OverviewTab = ({ data, onRefresh }) => {
             </div>
           </div>
         </div>
-
-        <div className="stat-card analytics">
-          <div className="stat-icon">📊</div>
-          <div className="stat-content">
-            <h3>Analytics</h3>
-            <div className="stat-number">{data.analytics?.totalViews || 0}</div>
-            <div className="stat-breakdown">
-              <span>Campaign Views</span>
-              <span>This Month</span>
-            </div>
-          </div>
-        </div>
       </div>
 
       <div className="quick-actions">
         <h3>🚀 Quick Actions</h3>
         <div className="action-buttons">
-          <button className="action-btn primary">
+          <button 
+            className="action-btn primary"
+            onClick={() => window.location.hash = '#users'}
+          >
+            👥 Manage Users
+          </button>
+          <button 
+            className="action-btn secondary"
+            onClick={() => window.location.hash = '#pending'}
+          >
             📋 Review Pending Campaigns
           </button>
-          <button className="action-btn secondary">
+          <button className="action-btn tertiary">
             📊 Generate Reports
           </button>
-          <button className="action-btn tertiary">
+          <button className="action-btn quaternary">
             ⚙️ System Settings
           </button>
         </div>
@@ -195,6 +242,15 @@ const OverviewTab = ({ data, onRefresh }) => {
       <div className="recent-activity">
         <h3>📈 Recent Activity</h3>
         <div className="activity-list">
+          {recentUsers.length > 0 && (
+            <div className="activity-item">
+              <span className="activity-icon">👥</span>
+              <span className="activity-text">
+                {recentUsers.length} new users registered this week
+              </span>
+              <span className="activity-time">This week</span>
+            </div>
+          )}
           <div className="activity-item">
             <span className="activity-icon">📋</span>
             <span className="activity-text">New campaign submitted for review</span>
@@ -245,9 +301,12 @@ const AnalyticsTab = () => {
           Campaign Analytics
         </button>
         <button className="action-btn secondary">
-          System Reports
+          User Analytics
         </button>
         <button className="action-btn tertiary">
+          System Reports
+        </button>
+        <button className="action-btn quaternary">
           Export Data
         </button>
       </div>

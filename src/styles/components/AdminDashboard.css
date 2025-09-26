@@ -1,3 +1,5 @@
+/* AdminDashboard.css - Updated with User Management Styles */
+
 .admin-dashboard {
   max-width: 1400px;
   margin: 0 auto;
@@ -86,6 +88,7 @@
   transition: all 0.3s ease;
   white-space: nowrap;
   position: relative;
+  min-width: fit-content;
 }
 
 .admin-nav-tab:hover {
@@ -97,6 +100,23 @@
   background: linear-gradient(135deg, #6f42c1, #e83e8c);
   color: white;
   box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3);
+}
+
+/* Specific styling for User Management tab */
+.admin-nav-tab[data-tab="users"] {
+  background: transparent;
+  color: #6c757d;
+}
+
+.admin-nav-tab[data-tab="users"]:hover {
+  color: #28a745;
+  background: #f0fff4;
+}
+
+.admin-nav-tab[data-tab="users"].active {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
 }
 
 .admin-nav-tab .tab-icon {
@@ -124,6 +144,12 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   overflow: hidden;
   min-height: 600px;
+}
+
+/* When User Management tab is active, override the background */
+.admin-content:has(.admin-user-management) {
+  background: transparent;
+  box-shadow: none;
 }
 
 /* Access Denied */
@@ -219,6 +245,10 @@
   border-left-color: #007bff;
 }
 
+.stat-card.users {
+  border-left-color: #28a745;
+}
+
 .stat-card.activity {
   border-left-color: #ffc107;
 }
@@ -228,7 +258,7 @@
 }
 
 .stat-card.analytics {
-  border-left-color: #28a745;
+  border-left-color: #fd7e14;
 }
 
 .stat-icon {
@@ -306,16 +336,29 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
 }
 
 .action-btn.primary {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+}
+
+.action-btn.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.action-btn.secondary {
   background: linear-gradient(135deg, #007bff, #0056b3);
   color: white;
 }
 
-.action-btn.secondary {
-  background: linear-gradient(135deg, #28a745, #20c997);
-  color: white;
+.action-btn.secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
 }
 
 .action-btn.tertiary {
@@ -323,9 +366,19 @@
   color: white;
 }
 
-.action-btn:hover {
+.action-btn.tertiary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+}
+
+.action-btn.quaternary {
+  background: linear-gradient(135deg, #6f42c1, #e83e8c);
+  color: white;
+}
+
+.action-btn.quaternary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3);
 }
 
 /* Recent Activity */
