@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorMessage from '../common/ErrorMessage';
-import AdminUserManagement from './AdminUserManagement';
+import AdminDocumentViewer from './AdminDocumentViewer'; // Import the document viewer
 import { adminService } from '../../services/adminService';
 import '../../styles/components/AdminDashboard.css';
 
@@ -36,10 +36,8 @@ const AdminDashboard = () => {
     }
   };
 
-  // Updated tabs array with User Management between Overview and Campaigns
   const tabs = [
     { id: 'overview', label: 'Overview', icon: '📊' },
-    { id: 'users', label: 'User Management', icon: '👥' },
     { id: 'campaigns', label: 'Campaigns', icon: '📋' },
     { id: 'pending', label: 'Pending Approvals', icon: '⏳' },
     { id: 'analytics', label: 'Analytics', icon: '📈' },
@@ -50,8 +48,6 @@ const AdminDashboard = () => {
     switch (activeTab) {
       case 'overview':
         return <OverviewTab data={dashboardData} onRefresh={fetchDashboardData} />;
-      case 'users':
-        return <AdminUserManagement />;
       case 'campaigns':
         return <CampaignsTab />;
       case 'pending':
@@ -89,7 +85,7 @@ const AdminDashboard = () => {
     <div className="admin-dashboard">
       <div className="admin-header">
         <h1>🛠️ Admin Dashboard</h1>
-        <p>Manage users, campaigns, and system settings</p>
+        <p>Manage campaigns and system settings</p>
         <div className="admin-user-info">
           <span>Welcome, {userData?.username || currentUser?.email}</span>
           <span className="admin-badge">Administrator</span>
@@ -121,36 +117,6 @@ const AdminDashboard = () => {
 
 // Overview Tab Component
 const OverviewTab = ({ data, onRefresh }) => {
-  const [userStats, setUserStats] = useState(null);
-  const [recentUsers, setRecentUsers] = useState([]);
-  const [statsLoading, setStatsLoading] = useState(false);
-
-  useEffect(() => {
-    fetchUserStats();
-    fetchRecentUsers();
-  }, []);
-
-  const fetchUserStats = async () => {
-    try {
-      setStatsLoading(true);
-      const stats = await adminService.getUserStatistics();
-      setUserStats(stats);
-    } catch (error) {
-      console.error('Error fetching user stats:', error);
-    } finally {
-      setStatsLoading(false);
-    }
-  };
-
-  const fetchRecentUsers = async () => {
-    try {
-      const recent = await adminService.getRecentUsers(7);
-      setRecentUsers(recent.users || []);
-    } catch (error) {
-      console.error('Error fetching recent users:', error);
-    }
-  };
-
   if (!data) return <LoadingSpinner message="Loading overview..." />;
 
   return (
@@ -172,21 +138,6 @@ const OverviewTab = ({ data, onRefresh }) => {
               <span>Active: {data.campaigns?.active || 0}</span>
               <span>Pending: {data.campaigns?.pending || 0}</span>
               <span>Approved: {data.campaigns?.approved || 0}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="stat-card users">
-          <div className="stat-icon">👥</div>
-          <div className="stat-content">
-            <h3>Users</h3>
-            <div className="stat-number">
-              {statsLoading ? '...' : (userStats?.totalUsers || 0)}
-            </div>
-            <div className="stat-breakdown">
-              <span>Total Users: {userStats?.totalUsers || 0}</span>
-              <span>Admins: {userStats?.adminUsers || 0}</span>
-              <span>This Week: {recentUsers.length}</span>
             </div>
           </div>
         </div>
@@ -213,27 +164,30 @@ const OverviewTab = ({ data, onRefresh }) => {
             </div>
           </div>
         </div>
+
+        <div className="stat-card analytics">
+          <div className="stat-icon">📊</div>
+          <div className="stat-content">
+            <h3>Analytics</h3>
+            <div className="stat-number">{data.analytics?.totalViews || 0}</div>
+            <div className="stat-breakdown">
+              <span>Campaign Views</span>
+              <span>This Month</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="quick-actions">
         <h3>🚀 Quick Actions</h3>
         <div className="action-buttons">
-          <button 
-            className="action-btn primary"
-            onClick={() => window.location.hash = '#users'}
-          >
-            👥 Manage Users
-          </button>
-          <button 
-            className="action-btn secondary"
-            onClick={() => window.location.hash = '#pending'}
-          >
+          <button className="action-btn primary">
             📋 Review Pending Campaigns
           </button>
-          <button className="action-btn tertiary">
+          <button className="action-btn secondary">
             📊 Generate Reports
           </button>
-          <button className="action-btn quaternary">
+          <button className="action-btn tertiary">
             ⚙️ System Settings
           </button>
         </div>
@@ -242,15 +196,6 @@ const OverviewTab = ({ data, onRefresh }) => {
       <div className="recent-activity">
         <h3>📈 Recent Activity</h3>
         <div className="activity-list">
-          {recentUsers.length > 0 && (
-            <div className="activity-item">
-              <span className="activity-icon">👥</span>
-              <span className="activity-text">
-                {recentUsers.length} new users registered this week
-              </span>
-              <span className="activity-time">This week</span>
-            </div>
-          )}
           <div className="activity-item">
             <span className="activity-icon">📋</span>
             <span className="activity-text">New campaign submitted for review</span>
@@ -301,12 +246,9 @@ const AnalyticsTab = () => {
           Campaign Analytics
         </button>
         <button className="action-btn secondary">
-          User Analytics
-        </button>
-        <button className="action-btn tertiary">
           System Reports
         </button>
-        <button className="action-btn quaternary">
+        <button className="action-btn tertiary">
           Export Data
         </button>
       </div>
@@ -314,7 +256,7 @@ const AnalyticsTab = () => {
   );
 };
 
-// Pending Approvals Tab Component
+// ✅ ENHANCED: Pending Approvals Tab Component with Document Viewer
 const PendingApprovalsTab = ({ data, onRefresh }) => {
   const [pendingCampaigns, setPendingCampaigns] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -379,6 +321,20 @@ const PendingApprovalsTab = ({ data, onRefresh }) => {
       alert('Failed to reject campaign: ' + (error.error || error.message));
     } finally {
       setActionLoading(prev => ({ ...prev, [campaignId]: null }));
+    }
+  };
+
+  // ✅ NEW: Handle document actions (approve/reject based on document review)
+  const handleDocumentAction = async (action, details) => {
+    console.log('Document action:', action, details);
+    
+    if (action === 'approve') {
+      await handleApprove(details.campaignId);
+    } else if (action === 'reject') {
+      await handleReject(details.campaignId);
+    } else if (action === 'download' || action === 'preview') {
+      // Log admin action for audit trail
+      console.log(`Admin ${action}ed document for campaign ${details.campaignId}`);
     }
   };
 
@@ -451,6 +407,7 @@ const PendingApprovalsTab = ({ data, onRefresh }) => {
                   campaign={campaign}
                   onApprove={() => handleApprove(campaign.id)}
                   onReject={() => handleReject(campaign.id)}
+                  onDocumentAction={handleDocumentAction}
                   isLoading={actionLoading[campaign.id]}
                   formatCurrency={formatCurrency}
                   formatDate={formatDate}
@@ -464,15 +421,18 @@ const PendingApprovalsTab = ({ data, onRefresh }) => {
   );
 };
 
-// Pending Campaign Card Component
+// ✅ ENHANCED: Pending Campaign Card Component with Document Viewer
 const PendingCampaignCard = ({ 
   campaign, 
   onApprove, 
   onReject, 
+  onDocumentAction,
   isLoading,
   formatCurrency,
   formatDate 
 }) => {
+  const [showDocumentViewer, setShowDocumentViewer] = useState(false);
+
   return (
     <div className="pending-campaign-card">
       <div className="campaign-header">
@@ -521,17 +481,56 @@ const PendingCampaignCard = ({
           </div>
         </div>
 
+        {/* ✅ ENHANCED: Document Viewer Integration */}
         {campaign.documentUrl && (
-          <div className="campaign-documents">
-            <h4>Supporting Documents</h4>
-            <a 
-              href={campaign.documentUrl} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="document-link"
-            >
-              📄 View Document
-            </a>
+          <div className="campaign-documents-section">
+            <div className="documents-header">
+              <h4>📄 Supporting Documents</h4>
+              <button 
+                onClick={() => setShowDocumentViewer(!showDocumentViewer)}
+                className="toggle-document-viewer-btn"
+              >
+                {showDocumentViewer ? '🔼 Hide Document Viewer' : '🔽 Show Document Viewer'}
+              </button>
+            </div>
+
+            {showDocumentViewer && (
+              <div className="document-viewer-container">
+                <AdminDocumentViewer
+                  documentUrl={campaign.documentUrl}
+                  campaignId={campaign.id}
+                  campaignName={campaign.name}
+                  onDocumentAction={onDocumentAction}
+                />
+              </div>
+            )}
+
+            {/* Quick document link for convenience */}
+            {!showDocumentViewer && (
+              <div className="quick-document-access">
+                <a 
+                  href={campaign.documentUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="document-link quick-link"
+                >
+                  📄 Quick View Document
+                </a>
+                <span className="document-tip">
+                  💡 Use Document Viewer above for better admin controls
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Show message if no document provided */}
+        {!campaign.documentUrl && (
+          <div className="no-document-section">
+            <div className="no-document-notice">
+              <span className="notice-icon">⚠️</span>
+              <span className="notice-text">No supporting document provided</span>
+            </div>
           </div>
         )}
       </div>
