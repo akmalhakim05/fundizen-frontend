@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { uploadService } from '../../services/uploadService';
-import './AdminDocumentViewer.css';
+import '../../styles/components/AdminDocumentViewer.css';
 
 const AdminDocumentViewer = ({ 
   documentUrl, 
