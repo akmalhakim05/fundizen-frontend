@@ -215,7 +215,27 @@ export const adminService = {
   getPendingCampaigns: async () => {
     try {
       const response = await api.get('/admin/campaigns/pending');
-      return response.data;
+      
+      // Debug log
+      console.log('API Response:', response.data);
+      
+      // Ensure campaigns array is properly returned
+      const campaigns = response.data.campaigns || response.data || [];
+      
+      // Map MongoDB _id to id if needed
+      const mappedCampaigns = campaigns.map(campaign => ({
+        ...campaign,
+        id: campaign.id || campaign._id?.$oid || campaign._id,
+        // Ensure documentUrl is properly mapped
+        documentUrl: campaign.documentUrl || campaign.DocumentUrl || null
+      }));
+      
+      console.log('Mapped Campaigns:', mappedCampaigns);
+      
+      return {
+        campaigns: mappedCampaigns,
+        count: mappedCampaigns.length
+      };
     } catch (error) {
       console.error('Error fetching pending campaigns:', error);
       throw error.response?.data || error.message;

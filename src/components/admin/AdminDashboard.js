@@ -433,6 +433,28 @@ const PendingCampaignCard = ({
 }) => {
   const [showDocumentViewer, setShowDocumentViewer] = useState(false);
 
+  // Debug: Log campaign data to see what we're receiving
+  useEffect(() => {
+    console.log('Campaign Data:', campaign);
+    console.log('Document URL:', campaign.documentUrl);
+    console.log('Has Document URL?', !!campaign.documentUrl);
+  }, [campaign]);
+
+  // Extract document URL with multiple fallback checks
+  const getDocumentUrl = () => {
+    // Try different possible property names
+    return campaign.documentUrl || 
+           campaign.DocumentUrl || 
+           campaign.document_url || 
+           campaign.document?.url ||
+           null;
+  };
+
+  const documentUrl = getDocumentUrl();
+
+  // Debug log
+  console.log('Extracted documentUrl:', documentUrl);
+
   return (
     <div className="pending-campaign-card">
       <div className="campaign-header">
@@ -447,7 +469,7 @@ const PendingCampaignCard = ({
         <div className="campaign-info">
           <h3 className="campaign-name">{campaign.name}</h3>
           <p className="campaign-creator">
-            <strong>Creator:</strong> {campaign.creatorUsername || 'Unknown'}
+            <strong>Creator:</strong> {campaign.creatorUsername || campaign.creatorId || 'Unknown'}
           </p>
           <p className="campaign-category">
             <strong>Category:</strong> {campaign.category}
@@ -481,8 +503,8 @@ const PendingCampaignCard = ({
           </div>
         </div>
 
-        {/* ✅ ENHANCED: Document Viewer Integration */}
-        {campaign.documentUrl && (
+        {/* ✅ FIXED: Better document URL checking */}
+        {documentUrl ? (
           <div className="campaign-documents-section">
             <div className="documents-header">
               <h4>📄 Supporting Documents</h4>
@@ -497,8 +519,8 @@ const PendingCampaignCard = ({
             {showDocumentViewer && (
               <div className="document-viewer-container">
                 <AdminDocumentViewer
-                  documentUrl={campaign.documentUrl}
-                  campaignId={campaign.id}
+                  documentUrl={documentUrl}
+                  campaignId={campaign.id || campaign._id || campaign._id?.$oid}
                   campaignName={campaign.name}
                   onDocumentAction={onDocumentAction}
                 />
@@ -509,7 +531,7 @@ const PendingCampaignCard = ({
             {!showDocumentViewer && (
               <div className="quick-document-access">
                 <a 
-                  href={campaign.documentUrl} 
+                  href={documentUrl} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="document-link quick-link"
@@ -522,14 +544,15 @@ const PendingCampaignCard = ({
               </div>
             )}
           </div>
-        )}
-
-        {/* Show message if no document provided */}
-        {!campaign.documentUrl && (
+        ) : (
           <div className="no-document-section">
             <div className="no-document-notice">
               <span className="notice-icon">⚠️</span>
               <span className="notice-text">No supporting document provided</span>
+            </div>
+            {/* Debug info (remove in production) */}
+            <div style={{ fontSize: '0.75rem', color: '#999', marginTop: '8px' }}>
+              Debug: Checked documentUrl, DocumentUrl, document_url, document.url - all null/undefined
             </div>
           </div>
         )}
