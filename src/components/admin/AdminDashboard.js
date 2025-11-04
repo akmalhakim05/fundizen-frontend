@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorMessage from '../common/ErrorMessage';
+import AdminDocumentViewer from './AdminDocumentViewer'; // Import the document viewer
 import { adminService } from '../../services/adminService';
 import '../../styles/components/AdminDashboard.css';
 
@@ -38,8 +39,8 @@ const AdminDashboard = () => {
   const tabs = [
     { id: 'overview', label: 'Overview', icon: '📊' },
     { id: 'campaigns', label: 'Campaigns', icon: '📋' },
-    { id: 'users', label: 'Users', icon: '👥' },
     { id: 'pending', label: 'Pending Approvals', icon: '⏳' },
+    { id: 'analytics', label: 'Analytics', icon: '📈' },
     { id: 'system', label: 'System', icon: '⚙️' }
   ];
 
@@ -49,10 +50,10 @@ const AdminDashboard = () => {
         return <OverviewTab data={dashboardData} onRefresh={fetchDashboardData} />;
       case 'campaigns':
         return <CampaignsTab />;
-      case 'users':
-        return <UsersTab />;
       case 'pending':
         return <PendingApprovalsTab data={dashboardData} onRefresh={fetchDashboardData} />;
+      case 'analytics':
+        return <AnalyticsTab />;
       case 'system':
         return <SystemTab />;
       default:
@@ -84,7 +85,7 @@ const AdminDashboard = () => {
     <div className="admin-dashboard">
       <div className="admin-header">
         <h1>🛠️ Admin Dashboard</h1>
-        <p>Manage campaigns, users, and system settings</p>
+        <p>Manage campaigns and system settings</p>
         <div className="admin-user-info">
           <span>Welcome, {userData?.username || currentUser?.email}</span>
           <span className="admin-badge">Administrator</span>
@@ -141,19 +142,6 @@ const OverviewTab = ({ data, onRefresh }) => {
           </div>
         </div>
 
-        <div className="stat-card users">
-          <div className="stat-icon">👥</div>
-          <div className="stat-content">
-            <h3>Users</h3>
-            <div className="stat-number">{data.users?.total || 0}</div>
-            <div className="stat-breakdown">
-              <span>Verified: {data.users?.verified || 0}</span>
-              <span>Admins: {data.users?.admins || 0}</span>
-              <span>Recent: {data.users?.recentSignups || 0}</span>
-            </div>
-          </div>
-        </div>
-
         <div className="stat-card activity">
           <div className="stat-icon">📈</div>
           <div className="stat-content">
@@ -161,7 +149,7 @@ const OverviewTab = ({ data, onRefresh }) => {
             <div className="stat-number">{data.activity?.pendingApprovals || 0}</div>
             <div className="stat-breakdown">
               <span>Pending Work: {data.activity?.totalPendingWork || 0}</span>
-              <span>Recent Users: {data.activity?.recentUsersCount || 0}</span>
+              <span>Recent Activity: {data.activity?.recentActivity || 0}</span>
             </div>
           </div>
         </div>
@@ -176,6 +164,18 @@ const OverviewTab = ({ data, onRefresh }) => {
             </div>
           </div>
         </div>
+
+        <div className="stat-card analytics">
+          <div className="stat-icon">📊</div>
+          <div className="stat-content">
+            <h3>Analytics</h3>
+            <div className="stat-number">{data.analytics?.totalViews || 0}</div>
+            <div className="stat-breakdown">
+              <span>Campaign Views</span>
+              <span>This Month</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="quick-actions">
@@ -185,10 +185,10 @@ const OverviewTab = ({ data, onRefresh }) => {
             📋 Review Pending Campaigns
           </button>
           <button className="action-btn secondary">
-            👥 Manage Users
+            📊 Generate Reports
           </button>
           <button className="action-btn tertiary">
-            📊 Generate Reports
+            ⚙️ System Settings
           </button>
         </div>
       </div>
@@ -202,14 +202,14 @@ const OverviewTab = ({ data, onRefresh }) => {
             <span className="activity-time">2 minutes ago</span>
           </div>
           <div className="activity-item">
-            <span className="activity-icon">👤</span>
-            <span className="activity-text">New user registered</span>
-            <span className="activity-time">15 minutes ago</span>
-          </div>
-          <div className="activity-item">
             <span className="activity-icon">✅</span>
             <span className="activity-text">Campaign approved</span>
             <span className="activity-time">1 hour ago</span>
+          </div>
+          <div className="activity-item">
+            <span className="activity-icon">📊</span>
+            <span className="activity-text">Daily report generated</span>
+            <span className="activity-time">3 hours ago</span>
           </div>
         </div>
       </div>
@@ -223,21 +223,40 @@ const CampaignsTab = () => {
     <div className="campaigns-tab">
       <h2>📋 Campaign Management</h2>
       <p>Campaign management functionality will be implemented here.</p>
+      <div className="tab-actions">
+        <button className="action-btn primary">
+          View All Campaigns
+        </button>
+        <button className="action-btn secondary">
+          Export Campaign Data
+        </button>
+      </div>
     </div>
   );
 };
 
-// Users Tab Component
-const UsersTab = () => {
+// Analytics Tab Component
+const AnalyticsTab = () => {
   return (
-    <div className="users-tab">
-      <h2>👥 User Management</h2>
-      <p>User management functionality will be implemented here.</p>
+    <div className="analytics-tab">
+      <h2>📈 Analytics & Reports</h2>
+      <p>Analytics and reporting functionality will be implemented here.</p>
+      <div className="tab-actions">
+        <button className="action-btn primary">
+          Campaign Analytics
+        </button>
+        <button className="action-btn secondary">
+          System Reports
+        </button>
+        <button className="action-btn tertiary">
+          Export Data
+        </button>
+      </div>
     </div>
   );
 };
 
-// Pending Approvals Tab Component
+// ✅ ENHANCED: Pending Approvals Tab Component with Document Viewer
 const PendingApprovalsTab = ({ data, onRefresh }) => {
   const [pendingCampaigns, setPendingCampaigns] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -302,6 +321,20 @@ const PendingApprovalsTab = ({ data, onRefresh }) => {
       alert('Failed to reject campaign: ' + (error.error || error.message));
     } finally {
       setActionLoading(prev => ({ ...prev, [campaignId]: null }));
+    }
+  };
+
+  // ✅ NEW: Handle document actions (approve/reject based on document review)
+  const handleDocumentAction = async (action, details) => {
+    console.log('Document action:', action, details);
+    
+    if (action === 'approve') {
+      await handleApprove(details.campaignId);
+    } else if (action === 'reject') {
+      await handleReject(details.campaignId);
+    } else if (action === 'download' || action === 'preview') {
+      // Log admin action for audit trail
+      console.log(`Admin ${action}ed document for campaign ${details.campaignId}`);
     }
   };
 
@@ -374,6 +407,7 @@ const PendingApprovalsTab = ({ data, onRefresh }) => {
                   campaign={campaign}
                   onApprove={() => handleApprove(campaign.id)}
                   onReject={() => handleReject(campaign.id)}
+                  onDocumentAction={handleDocumentAction}
                   isLoading={actionLoading[campaign.id]}
                   formatCurrency={formatCurrency}
                   formatDate={formatDate}
@@ -387,15 +421,40 @@ const PendingApprovalsTab = ({ data, onRefresh }) => {
   );
 };
 
-// Pending Campaign Card Component
+// ✅ ENHANCED: Pending Campaign Card Component with Document Viewer
 const PendingCampaignCard = ({ 
   campaign, 
   onApprove, 
   onReject, 
+  onDocumentAction,
   isLoading,
   formatCurrency,
   formatDate 
 }) => {
+  const [showDocumentViewer, setShowDocumentViewer] = useState(false);
+
+  // Debug: Log campaign data to see what we're receiving
+  useEffect(() => {
+    console.log('Campaign Data:', campaign);
+    console.log('Document URL:', campaign.documentUrl);
+    console.log('Has Document URL?', !!campaign.documentUrl);
+  }, [campaign]);
+
+  // Extract document URL with multiple fallback checks
+  const getDocumentUrl = () => {
+    // Try different possible property names
+    return campaign.documentUrl || 
+           campaign.DocumentUrl || 
+           campaign.document_url || 
+           campaign.document?.url ||
+           null;
+  };
+
+  const documentUrl = getDocumentUrl();
+
+  // Debug log
+  console.log('Extracted documentUrl:', documentUrl);
+
   return (
     <div className="pending-campaign-card">
       <div className="campaign-header">
@@ -410,7 +469,7 @@ const PendingCampaignCard = ({
         <div className="campaign-info">
           <h3 className="campaign-name">{campaign.name}</h3>
           <p className="campaign-creator">
-            <strong>Creator:</strong> {campaign.creatorUsername || 'Unknown'}
+            <strong>Creator:</strong> {campaign.creatorUsername || campaign.creatorId || 'Unknown'}
           </p>
           <p className="campaign-category">
             <strong>Category:</strong> {campaign.category}
@@ -444,17 +503,57 @@ const PendingCampaignCard = ({
           </div>
         </div>
 
-        {campaign.documentUrl && (
-          <div className="campaign-documents">
-            <h4>Supporting Documents</h4>
-            <a 
-              href={campaign.documentUrl} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="document-link"
-            >
-              📄 View Document
-            </a>
+        {/* ✅ FIXED: Better document URL checking */}
+        {documentUrl ? (
+          <div className="campaign-documents-section">
+            <div className="documents-header">
+              <h4>📄 Supporting Documents</h4>
+              <button 
+                onClick={() => setShowDocumentViewer(!showDocumentViewer)}
+                className="toggle-document-viewer-btn"
+              >
+                {showDocumentViewer ? '🔼 Hide Document Viewer' : '🔽 Show Document Viewer'}
+              </button>
+            </div>
+
+            {showDocumentViewer && (
+              <div className="document-viewer-container">
+                <AdminDocumentViewer
+                  documentUrl={documentUrl}
+                  campaignId={campaign.id || campaign._id || campaign._id?.$oid}
+                  campaignName={campaign.name}
+                  onDocumentAction={onDocumentAction}
+                />
+              </div>
+            )}
+
+            {/* Quick document link for convenience */}
+            {!showDocumentViewer && (
+              <div className="quick-document-access">
+                <a 
+                  href={documentUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="document-link quick-link"
+                >
+                  📄 Quick View Document
+                </a>
+                <span className="document-tip">
+                  💡 Use Document Viewer above for better admin controls
+                </span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="no-document-section">
+            <div className="no-document-notice">
+              <span className="notice-icon">⚠️</span>
+              <span className="notice-text">No supporting document provided</span>
+            </div>
+            {/* Debug info (remove in production) */}
+            <div style={{ fontSize: '0.75rem', color: '#999', marginTop: '8px' }}>
+              Debug: Checked documentUrl, DocumentUrl, document_url, document.url - all null/undefined
+            </div>
           </div>
         )}
       </div>
@@ -504,6 +603,17 @@ const SystemTab = () => {
     <div className="system-tab">
       <h2>⚙️ System Management</h2>
       <p>System management functionality will be implemented here.</p>
+      <div className="tab-actions">
+        <button className="action-btn primary">
+          System Health Check
+        </button>
+        <button className="action-btn secondary">
+          System Configuration
+        </button>
+        <button className="action-btn tertiary">
+          Maintenance Mode
+        </button>
+      </div>
     </div>
   );
 };

@@ -14,6 +14,190 @@ export const adminService = {
     }
   },
 
+  // ===== USER MANAGEMENT ENDPOINTS =====
+
+  // Get all users with pagination and filters (admin panel)
+  getAllUsersForAdmin: async (filters = {}) => {
+    try {
+      const response = await api.get('/admin/users', { params: filters });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching users for admin:', error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get basic user list (public endpoint)
+  getAllUsers: async (params = {}) => {
+    try {
+      const response = await api.get('/users', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get users by role
+  getUsersByRole: async (role) => {
+    try {
+      const response = await api.get(`/users/role/${role}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching users by role ${role}:`, error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Search users
+  searchUsers: async (query) => {
+    try {
+      const response = await api.get('/users/search', { params: { q: query } });
+      return response.data;
+    } catch (error) {
+      console.error('Error searching users:', error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get user details by ID
+  getUserDetails: async (userId) => {
+    try {
+      const response = await api.get(`/admin/users/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching user details for ${userId}:`, error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get basic user info
+  getUserById: async (userId) => {
+    try {
+      const response = await api.get(`/users/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching user ${userId}:`, error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Promote user to admin
+  promoteUserToAdmin: async (userId) => {
+    try {
+      const response = await api.post(`/admin/users/${userId}/promote`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error promoting user ${userId}:`, error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Demote admin to user
+  demoteAdminToUser: async (userId) => {
+    try {
+      const response = await api.post(`/admin/users/${userId}/demote`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error demoting user ${userId}:`, error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Delete user (if this endpoint exists in your backend)
+  deleteUser: async (userId) => {
+    try {
+      const response = await api.delete(`/admin/users/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error deleting user ${userId}:`, error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Bulk update user roles
+  bulkUpdateUserRoles: async (userIds, newRole) => {
+    try {
+      // Since your backend doesn't have bulk endpoints yet, 
+      // we'll simulate it by calling individual promote/demote endpoints
+      const promises = userIds.map(userId => {
+        if (newRole === 'admin') {
+          return adminService.promoteUserToAdmin(userId);
+        } else {
+          return adminService.demoteAdminToUser(userId);
+        }
+      });
+      
+      const results = await Promise.allSettled(promises);
+      
+      const successCount = results.filter(r => r.status === 'fulfilled').length;
+      const failureCount = results.filter(r => r.status === 'rejected').length;
+      
+      return {
+        totalProcessed: userIds.length,
+        successCount,
+        failureCount,
+        newRole,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Error bulk updating user roles:', error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Bulk update user verification status
+  bulkUpdateUserVerification: async (userIds, verified) => {
+    try {
+      // Since your backend doesn't have bulk verification endpoints yet,
+      // we'll simulate this functionality. You'll need to implement these endpoints
+      // in your backend: PUT /admin/users/{id}/verify and PUT /admin/users/{id}/unverify
+      const endpoint = verified ? 'verify' : 'unverify';
+      
+      const promises = userIds.map(userId =>
+        api.put(`/admin/users/${userId}/${endpoint}`)
+      );
+      
+      const results = await Promise.allSettled(promises);
+      
+      const successCount = results.filter(r => r.status === 'fulfilled').length;
+      const failureCount = results.filter(r => r.status === 'rejected').length;
+      
+      return {
+        totalProcessed: userIds.length,
+        successCount,
+        failureCount,
+        verified,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Error bulk updating user verification:', error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get user statistics
+  getUserStatistics: async () => {
+    try {
+      const response = await api.get('/users/stats');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching user statistics:', error);
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get recent users
+  getRecentUsers: async (days = 30) => {
+    try {
+      const response = await api.get('/users/recent', { params: { days } });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching recent users:', error);
+      throw error.response?.data || error.message;
+    }
+  },
+
   // ===== CAMPAIGN MANAGEMENT =====
 
   // Get all campaigns for admin review (with pagination and filters)
@@ -31,7 +215,27 @@ export const adminService = {
   getPendingCampaigns: async () => {
     try {
       const response = await api.get('/admin/campaigns/pending');
-      return response.data;
+      
+      // Debug log
+      console.log('API Response:', response.data);
+      
+      // Ensure campaigns array is properly returned
+      const campaigns = response.data.campaigns || response.data || [];
+      
+      // Map MongoDB _id to id if needed
+      const mappedCampaigns = campaigns.map(campaign => ({
+        ...campaign,
+        id: campaign.id || campaign._id?.$oid || campaign._id,
+        // Ensure documentUrl is properly mapped
+        documentUrl: campaign.documentUrl || campaign.DocumentUrl || null
+      }));
+      
+      console.log('Mapped Campaigns:', mappedCampaigns);
+      
+      return {
+        campaigns: mappedCampaigns,
+        count: mappedCampaigns.length
+      };
     } catch (error) {
       console.error('Error fetching pending campaigns:', error);
       throw error.response?.data || error.message;
@@ -63,8 +267,19 @@ export const adminService = {
   // Bulk approve multiple campaigns
   bulkApproveCampaigns: async (campaignIds) => {
     try {
-      const response = await api.post('/admin/campaigns/bulk-approve', { campaignIds });
-      return response.data;
+      const results = await Promise.allSettled(
+        campaignIds.map(id => adminService.approveCampaign(id))
+      );
+      
+      const successCount = results.filter(r => r.status === 'fulfilled').length;
+      const failureCount = results.filter(r => r.status === 'rejected').length;
+      
+      return {
+        totalProcessed: campaignIds.length,
+        successCount,
+        failureCount,
+        timestamp: new Date().toISOString()
+      };
     } catch (error) {
       console.error('Error bulk approving campaigns:', error);
       throw error.response?.data || error.message;
@@ -74,111 +289,22 @@ export const adminService = {
   // Bulk reject multiple campaigns
   bulkRejectCampaigns: async (campaignIds, reason = '') => {
     try {
-      const response = await api.post('/admin/campaigns/bulk-reject', { 
-        campaignIds, 
-        reason 
-      });
-      return response.data;
+      const results = await Promise.allSettled(
+        campaignIds.map(id => adminService.rejectCampaign(id, reason))
+      );
+      
+      const successCount = results.filter(r => r.status === 'fulfilled').length;
+      const failureCount = results.filter(r => r.status === 'rejected').length;
+      
+      return {
+        totalProcessed: campaignIds.length,
+        successCount,
+        failureCount,
+        reason,
+        timestamp: new Date().toISOString()
+      };
     } catch (error) {
       console.error('Error bulk rejecting campaigns:', error);
-      throw error.response?.data || error.message;
-    }
-  },
-
-  // ===== USER MANAGEMENT =====
-
-  // Get all users for admin management (with pagination and filters)
-  getAllUsersForAdmin: async (params = {}) => {
-    try {
-      const response = await api.get('/admin/users', { params });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching users for admin:', error);
-      throw error.response?.data || error.message;
-    }
-  },
-
-  // Get user details by ID
-  getUserDetails: async (userId) => {
-    try {
-      const response = await api.get(`/admin/users/${userId}`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching user details ${userId}:`, error);
-      throw error.response?.data || error.message;
-    }
-  },
-
-  // Promote user to admin
-  promoteUserToAdmin: async (userId) => {
-    try {
-      const response = await api.post(`/admin/users/${userId}/promote`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error promoting user ${userId}:`, error);
-      throw error.response?.data || error.message;
-    }
-  },
-
-  // Demote admin to regular user
-  demoteAdminToUser: async (userId) => {
-    try {
-      const response = await api.post(`/admin/users/${userId}/demote`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error demoting user ${userId}:`, error);
-      throw error.response?.data || error.message;
-    }
-  },
-
-  // Delete user (admin only)
-  deleteUser: async (userId) => {
-    try {
-      const response = await api.delete(`/admin/users/${userId}`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error deleting user ${userId}:`, error);
-      throw error.response?.data || error.message;
-    }
-  },
-
-  // Bulk update user roles
-  bulkUpdateUserRoles: async (userIds, newRole) => {
-    try {
-      const response = await api.post('/admin/users/bulk-role-update', { 
-        userIds, 
-        newRole 
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error bulk updating user roles:', error);
-      throw error.response?.data || error.message;
-    }
-  },
-
-  // Bulk update user verification status
-  bulkUpdateUserVerification: async (userIds, verified) => {
-    try {
-      const response = await api.post('/admin/users/bulk-verification-update', { 
-        userIds, 
-        verified 
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error bulk updating user verification:', error);
-      throw error.response?.data || error.message;
-    }
-  },
-
-  // Advanced user search
-  searchUsersAdvanced: async (searchParams) => {
-    try {
-      const response = await api.get('/admin/users/search-advanced', { 
-        params: searchParams 
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error in advanced user search:', error);
       throw error.response?.data || error.message;
     }
   },
@@ -229,19 +355,6 @@ export const adminService = {
       return response.data;
     } catch (error) {
       console.error('Error fetching campaign analytics:', error);
-      throw error.response?.data || error.message;
-    }
-  },
-
-  // Get user analytics
-  getUserAnalytics: async (timeRange = 'month') => {
-    try {
-      const response = await api.get('/admin/analytics/users', {
-        params: { timeRange }
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching user analytics:', error);
       throw error.response?.data || error.message;
     }
   },
@@ -352,109 +465,5 @@ export const adminService = {
       console.error('Error fetching system logs:', error);
       throw error.response?.data || error.message;
     }
-  },
-
-  // ===== ADDITIONAL FEATURES =====
-  
-  // Bulk approve multiple campaigns (if not already implemented)
-  bulkApproveCampaigns: async (campaignIds) => {
-    try {
-      // Since your backend doesn't have bulk endpoints yet, 
-      // we'll simulate it by calling individual approve endpoints
-      const results = await Promise.allSettled(
-        campaignIds.map(id => adminService.approveCampaign(id))
-      );
-      
-      const successCount = results.filter(r => r.status === 'fulfilled').length;
-      const failureCount = results.filter(r => r.status === 'rejected').length;
-      
-      return {
-        totalProcessed: campaignIds.length,
-        successCount,
-        failureCount,
-        timestamp: new Date().toISOString()
-      };
-    } catch (error) {
-      console.error('Error bulk approving campaigns:', error);
-      throw error.response?.data || error.message;
-    }
-  },
-
-  // Bulk reject multiple campaigns (if not already implemented)
-  bulkRejectCampaigns: async (campaignIds, reason = '') => {
-    try {
-      // Since your backend doesn't have bulk endpoints yet, 
-      // we'll simulate it by calling individual reject endpoints
-      const results = await Promise.allSettled(
-        campaignIds.map(id => adminService.rejectCampaign(id, reason))
-      );
-      
-      const successCount = results.filter(r => r.status === 'fulfilled').length;
-      const failureCount = results.filter(r => r.status === 'rejected').length;
-      
-      return {
-        totalProcessed: campaignIds.length,
-        successCount,
-        failureCount,
-        reason,
-        timestamp: new Date().toISOString()
-      };
-    } catch (error) {
-      console.error('Error bulk rejecting campaigns:', error);
-      throw error.response?.data || error.message;
-    }
-  },
-
-  // Bulk update user roles (if not already implemented)
-  bulkUpdateUserRoles: async (userIds, newRole) => {
-    try {
-      // Since your backend doesn't have bulk endpoints yet, 
-      // we'll simulate it by calling individual role update endpoints
-      const results = await Promise.allSettled(
-        userIds.map(id => {
-          if (newRole === 'admin') {
-            return adminService.promoteUserToAdmin(id);
-          } else {
-            return adminService.demoteAdminToUser(id);
-          }
-        })
-      );
-      
-      const successCount = results.filter(r => r.status === 'fulfilled').length;
-      const failureCount = results.filter(r => r.status === 'rejected').length;
-      
-      return {
-        totalProcessed: userIds.length,
-        successCount,
-        failureCount,
-        newRole,
-        timestamp: new Date().toISOString()
-      };
-    } catch (error) {
-      console.error('Error bulk updating user roles:', error);
-      throw error.response?.data || error.message;
-    }
-  },
-
-  // Bulk update user verification status (if not already implemented)
-  bulkUpdateUserVerification: async (userIds, verified) => {
-    try {
-      // Note: You may need to add a verification endpoint to your backend
-      // For now, this is a placeholder that would need backend support
-      console.warn('Bulk verification update not implemented in backend yet');
-      
-      return {
-        totalProcessed: userIds.length,
-        successCount: 0,
-        failureCount: userIds.length,
-        verificationStatus: verified,
-        error: 'Bulk verification update not implemented in backend',
-        timestamp: new Date().toISOString()
-      };
-    } catch (error) {
-      console.error('Error bulk updating user verification:', error);
-      throw error.response?.data || error.message;
-    }
   }
 };
-

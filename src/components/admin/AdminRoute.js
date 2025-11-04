@@ -1,20 +1,23 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import LoadingSpinner from '../common/LoadingSpinner';
 
 const AdminRoute = ({ children }) => {
-  const { currentUser, userData } = useAuth();
+  const { currentUser, userData, loading } = useAuth();
 
-  // Check if user is logged in
-  if (!currentUser) {
-    return <Navigate to="/login" />;
+  if (loading) {
+    return <LoadingSpinner message="Checking permissions..." />;
   }
 
-  // Check if user is admin
+  if (!currentUser) {
+    return <Navigate to="/admin/login" replace />;
+  }
+
   const isAdmin = userData?.role === 'admin' || userData?.isAdmin;
   
   if (!isAdmin) {
-    return <Navigate to="/dashboard" />;
+    return <Navigate to="/admin/login" replace />;
   }
 
   return children;
