@@ -1,328 +1,153 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import React, { useState, useEffect, useCallback } from 'react';
+import { adminService } from '../../services/adminService';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorMessage from '../common/ErrorMessage';
-import { adminService } from '../../services/adminService';
-import '../../styles/components/AdminDashboard.css';
+import '../../styles/components/AdminCampaignManagement.css';
 
-const AdminDashboard = () => {
-  const { currentUser, userData } = useAuth();
-  const [activeTab, setActiveTab] = useState('overview');
+const AdminCampaignManagement = () => {
+  // State management
+  const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [dashboardData, setDashboardData] = useState(null);
+  const [selectedCampaigns, setSelectedCampaigns] = useState([]);
+  const [filters, setFilters] = useState({
+    page: 0,
+    size: 20,
+    sortBy: 'createdAt',
+    sortDir: 'desc',
+    status: 'all',
+    category: 'all'
+  });
+  const [pagination, setPagination] = useState(null);
 
-  // Check if user is admin
-  const isAdmin = userData?.role === 'admin' || userData?.isAdmin;
-
+  // Fetch campaigns
   useEffect(() => {
-    if (isAdmin) {
-      fetchDashboardData();
-    }
-  }, [isAdmin]);
+    fetchCampaigns();
+  }, [filters]);
 
-  const fetchDashboardData = async () => {
+  const fetchCampaigns = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
-      const data = await adminService.getDashboardStats();
-      setDashboardData(data);
+      
+      // Filter out 'all' values
+      const apiFilters = { ...filters };
+      if (apiFilters.status === 'all') delete apiFilters.status;
+      if (apiFilters.category === 'all') delete apiFilters.category;
+      
+      const response = await adminService.getAllCampaignsForAdmin(apiFilters);
+      setCampaigns(response.campaigns || []);
+      setPagination(response.pagination || null);
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      setError('Failed to load dashboard data');
+      console.error('Error fetching campaigns:', error);
+      setError('Failed to load campaigns');
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
 
-  const tabs = [
-    { id: 'overview', label: 'Overview', icon: '📊' },
-    { id: 'campaigns', label: 'Campaigns', icon: '📋' },
-    { id: 'pending', label: 'Pending Approvals', icon: '⏳' },
-    { id: 'analytics', label: 'Analytics', icon: '📈' },
-    { id: 'system', label: 'System', icon: '⚙️' }
-  ];
-
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'overview':
-        return <OverviewTab data={dashboardData} onRefresh={fetchDashboardData} />;
-      case 'campaigns':
-        return <CampaignsTab />;
-      case 'pending':
-        return <PendingApprovalsTab data={dashboardData} onRefresh={fetchDashboardData} />;
-      case 'analytics':
-        return <AnalyticsTab />;
-      case 'system':
-        return <SystemTab />;
-      default:
-        return <OverviewTab data={dashboardData} onRefresh={fetchDashboardData} />;
+  // Bulk approve campaigns
+  const handleBulkApprove = async () => {
+    if (selectedCampaigns.length === 0) {
+      alert('Please select campaigns to approve');
+      return;
     }
-  };
 
-  if (!isAdmin) {
-    return (
-      <div className="admin-access-denied">
-        <div className="access-denied-content">
-          <h2>🚫 Access Denied</h2>
-          <p>You don't have administrator privileges to access this page.</p>
-          <p>Please contact your system administrator if you believe this is an error.</p>
-        </div>
-      </div>
-    );
-  }
+    if (!window.confirm(`Are you sure you want to approve ${selectedCampaigns.length} campaigns?`)) {
+      return;
+    }
 
-  if (loading) {
-    return <LoadingSpinner message="Loading admin dashboard..." />;
-  }
-
-  if (error) {
-    return <ErrorMessage message={error} onRetry={fetchDashboardData} />;
-  }
-
-  return (
-    <div className="admin-dashboard">
-      <div className="admin-header">
-        <h1>🛠️ Admin Dashboard</h1>
-        <p>Manage campaigns and system settings</p>
-        <div className="admin-user-info">
-          <span>Welcome, {userData?.username || currentUser?.email}</span>
-          <span className="admin-badge">Administrator</span>
-        </div>
-      </div>
-
-      <div className="admin-nav">
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            className={`admin-nav-tab ${activeTab === tab.id ? 'active' : ''}`}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            <span className="tab-icon">{tab.icon}</span>
-            <span className="tab-label">{tab.label}</span>
-            {tab.id === 'pending' && dashboardData?.campaigns?.pending > 0 && (
-              <span className="notification-badge">{dashboardData.campaigns.pending}</span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      <div className="admin-content">
-        {renderTabContent()}
-      </div>
-    </div>
-  );
-};
-
-// Overview Tab Component
-const OverviewTab = ({ data, onRefresh }) => {
-  if (!data) return <LoadingSpinner message="Loading overview..." />;
-
-  return (
-    <div className="overview-tab">
-      <div className="overview-header">
-        <h2>📊 System Overview</h2>
-        <button onClick={onRefresh} className="refresh-btn">
-          🔄 Refresh
-        </button>
-      </div>
-
-      <div className="stats-grid">
-        <div className="stat-card campaigns">
-          <div className="stat-icon">📋</div>
-          <div className="stat-content">
-            <h3>Campaigns</h3>
-            <div className="stat-number">{data.campaigns?.total || 0}</div>
-            <div className="stat-breakdown">
-              <span>Active: {data.campaigns?.active || 0}</span>
-              <span>Pending: {data.campaigns?.pending || 0}</span>
-              <span>Approved: {data.campaigns?.approved || 0}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="stat-card activity">
-          <div className="stat-icon">📈</div>
-          <div className="stat-content">
-            <h3>Activity</h3>
-            <div className="stat-number">{data.activity?.pendingApprovals || 0}</div>
-            <div className="stat-breakdown">
-              <span>Pending Work: {data.activity?.totalPendingWork || 0}</span>
-              <span>Recent Activity: {data.activity?.recentActivity || 0}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="stat-card system">
-          <div className="stat-icon">⚙️</div>
-          <div className="stat-content">
-            <h3>System Status</h3>
-            <div className="stat-status healthy">Healthy</div>
-            <div className="stat-breakdown">
-              <span>Updated: {new Date().toLocaleTimeString()}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="stat-card analytics">
-          <div className="stat-icon">📊</div>
-          <div className="stat-content">
-            <h3>Analytics</h3>
-            <div className="stat-number">{data.analytics?.totalViews || 0}</div>
-            <div className="stat-breakdown">
-              <span>Campaign Views</span>
-              <span>This Month</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="quick-actions">
-        <h3>🚀 Quick Actions</h3>
-        <div className="action-buttons">
-          <button className="action-btn primary">
-            📋 Review Pending Campaigns
-          </button>
-          <button className="action-btn secondary">
-            📊 Generate Reports
-          </button>
-          <button className="action-btn tertiary">
-            ⚙️ System Settings
-          </button>
-        </div>
-      </div>
-
-      <div className="recent-activity">
-        <h3>📈 Recent Activity</h3>
-        <div className="activity-list">
-          <div className="activity-item">
-            <span className="activity-icon">📋</span>
-            <span className="activity-text">New campaign submitted for review</span>
-            <span className="activity-time">2 minutes ago</span>
-          </div>
-          <div className="activity-item">
-            <span className="activity-icon">✅</span>
-            <span className="activity-text">Campaign approved</span>
-            <span className="activity-time">1 hour ago</span>
-          </div>
-          <div className="activity-item">
-            <span className="activity-icon">📊</span>
-            <span className="activity-text">Daily report generated</span>
-            <span className="activity-time">3 hours ago</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Campaigns Tab Component
-const CampaignsTab = () => {
-  return (
-    <div className="campaigns-tab">
-      <h2>📋 Campaign Management</h2>
-      <p>Campaign management functionality will be implemented here.</p>
-      <div className="tab-actions">
-        <button className="action-btn primary">
-          View All Campaigns
-        </button>
-        <button className="action-btn secondary">
-          Export Campaign Data
-        </button>
-      </div>
-    </div>
-  );
-};
-
-// Analytics Tab Component
-const AnalyticsTab = () => {
-  return (
-    <div className="analytics-tab">
-      <h2>📈 Analytics & Reports</h2>
-      <p>Analytics and reporting functionality will be implemented here.</p>
-      <div className="tab-actions">
-        <button className="action-btn primary">
-          Campaign Analytics
-        </button>
-        <button className="action-btn secondary">
-          System Reports
-        </button>
-        <button className="action-btn tertiary">
-          Export Data
-        </button>
-      </div>
-    </div>
-  );
-};
-
-// Pending Approvals Tab Component
-const PendingApprovalsTab = ({ data, onRefresh }) => {
-  const [pendingCampaigns, setPendingCampaigns] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [actionLoading, setActionLoading] = useState({});
-
-  useEffect(() => {
-    fetchPendingCampaigns();
-  }, []);
-
-  const fetchPendingCampaigns = async () => {
     try {
-      setLoading(true);
-      setError('');
-      const response = await adminService.getPendingCampaigns();
-      setPendingCampaigns(response.campaigns || []);
+      const result = await adminService.bulkApproveCampaigns(selectedCampaigns);
+      setSelectedCampaigns([]);
+      fetchCampaigns();
+      alert(`Successfully approved ${result.successCount} campaigns. ${result.failureCount} failed.`);
     } catch (error) {
-      console.error('Error fetching pending campaigns:', error);
-      setError('Failed to load pending campaigns');
-    } finally {
-      setLoading(false);
+      console.error('Error bulk approving campaigns:', error);
+      alert('Failed to approve campaigns: ' + (error.error || error.message));
     }
   };
 
-  const handleApprove = async (campaignId) => {
+  // Bulk reject campaigns
+  const handleBulkReject = async () => {
+    if (selectedCampaigns.length === 0) {
+      alert('Please select campaigns to reject');
+      return;
+    }
+
+    const reason = prompt('Please provide a reason for rejection:');
+    if (!reason) return;
+
+    if (!window.confirm(`Are you sure you want to reject ${selectedCampaigns.length} campaigns?`)) {
+      return;
+    }
+
     try {
-      setActionLoading(prev => ({ ...prev, [campaignId]: 'approving' }));
+      const result = await adminService.bulkRejectCampaigns(selectedCampaigns, reason);
+      setSelectedCampaigns([]);
+      fetchCampaigns();
+      alert(`Successfully rejected ${result.successCount} campaigns. ${result.failureCount} failed.`);
+    } catch (error) {
+      console.error('Error bulk rejecting campaigns:', error);
+      alert('Failed to reject campaigns: ' + (error.error || error.message));
+    }
+  };
+
+  // Individual campaign actions
+  const handleApproveCampaign = async (campaignId) => {
+    try {
       await adminService.approveCampaign(campaignId);
-      
-      // Remove from pending list
-      setPendingCampaigns(prev => prev.filter(c => c.id !== campaignId));
-      
-      // Refresh dashboard data
-      if (onRefresh) onRefresh();
-      
+      fetchCampaigns();
       alert('Campaign approved successfully!');
     } catch (error) {
       console.error('Error approving campaign:', error);
       alert('Failed to approve campaign: ' + (error.error || error.message));
-    } finally {
-      setActionLoading(prev => ({ ...prev, [campaignId]: null }));
     }
   };
 
-  const handleReject = async (campaignId) => {
+  const handleRejectCampaign = async (campaignId) => {
     const reason = prompt('Please provide a reason for rejection (optional):');
-    if (reason === null) return; // User cancelled
+    if (reason === null) return;
 
     try {
-      setActionLoading(prev => ({ ...prev, [campaignId]: 'rejecting' }));
-      await adminService.rejectCampaign(campaignId, reason || '');
-      
-      // Remove from pending list
-      setPendingCampaigns(prev => prev.filter(c => c.id !== campaignId));
-      
-      // Refresh dashboard data
-      if (onRefresh) onRefresh();
-      
+      await adminService.rejectCampaign(campaignId, reason);
+      fetchCampaigns();
       alert('Campaign rejected successfully!');
     } catch (error) {
       console.error('Error rejecting campaign:', error);
       alert('Failed to reject campaign: ' + (error.error || error.message));
-    } finally {
-      setActionLoading(prev => ({ ...prev, [campaignId]: null }));
     }
   };
 
+  // Selection handlers
+  const handleSelectCampaign = (campaignId, isSelected) => {
+    if (isSelected) {
+      setSelectedCampaigns([...selectedCampaigns, campaignId]);
+    } else {
+      setSelectedCampaigns(selectedCampaigns.filter(id => id !== campaignId));
+    }
+  };
+
+  const handleSelectAll = (isSelected) => {
+    if (isSelected) {
+      setSelectedCampaigns(campaigns.map(c => c.id));
+    } else {
+      setSelectedCampaigns([]);
+    }
+  };
+
+  // Export campaigns
+  const handleExport = async () => {
+    try {
+      await adminService.exportData('campaigns', 'csv');
+      alert('Campaign data exported successfully!');
+    } catch (error) {
+      console.error('Error exporting campaigns:', error);
+      alert('Failed to export campaign data: ' + (error.error || error.message));
+    }
+  };
+
+  // Utility functions
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-MY', {
       style: 'currency',
@@ -338,94 +163,207 @@ const PendingApprovalsTab = ({ data, onRefresh }) => {
     });
   };
 
+  if (loading && campaigns.length === 0) {
+    return <LoadingSpinner message="Loading campaigns..." />;
+  }
+
+  if (error && campaigns.length === 0) {
+    return <ErrorMessage message={error} onRetry={fetchCampaigns} />;
+  }
+
   return (
-    <div className="pending-tab">
-      <div className="pending-header">
-        <h2>⏳ Pending Approvals</h2>
-        <p>Review and approve campaigns waiting for verification</p>
-        <button onClick={fetchPendingCampaigns} className="refresh-btn" disabled={loading}>
-          🔄 {loading ? 'Refreshing...' : 'Refresh'}
-        </button>
+    <div className="admin-campaign-management">
+      {/* Header */}
+      <div className="campaign-management-header">
+        <h2>📋 Campaign Management</h2>
+        <p>Review, approve, and manage all campaigns on the platform</p>
       </div>
 
-      {loading && <LoadingSpinner message="Loading pending campaigns..." />}
-      
-      {error && <ErrorMessage message={error} onRetry={fetchPendingCampaigns} />}
+      {/* Controls */}
+      <div className="campaign-controls">
+        {/* Filters */}
+        <div className="campaign-filters">
+          <select 
+            value={filters.status}
+            onChange={(e) => setFilters({...filters, status: e.target.value, page: 0})}
+          >
+            <option value="all">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="active">Active</option>
+            <option value="rejected">Rejected</option>
+          </select>
 
-      {!loading && !error && (
-        <>
-          <div className="pending-stats">
-            <div className="stat-card pending-count">
-              <div className="stat-icon">⏳</div>
-              <div className="stat-content">
-                <h3>Pending Campaigns</h3>
-                <div className="stat-number">{pendingCampaigns.length}</div>
-                <div className="stat-description">Awaiting your review</div>
-              </div>
+          <select 
+            value={filters.category}
+            onChange={(e) => setFilters({...filters, category: e.target.value, page: 0})}
+          >
+            <option value="all">All Categories</option>
+            <option value="medical">Medical</option>
+            <option value="education">Education</option>
+            <option value="community">Community</option>
+            <option value="emergency">Emergency</option>
+            <option value="environment">Environment</option>
+            <option value="animals">Animals</option>
+          </select>
+
+          <select 
+            value={`${filters.sortBy}-${filters.sortDir}`}
+            onChange={(e) => {
+              const [sortBy, sortDir] = e.target.value.split('-');
+              setFilters({...filters, sortBy, sortDir, page: 0});
+            }}
+          >
+            <option value="createdAt-desc">Newest First</option>
+            <option value="createdAt-asc">Oldest First</option>
+            <option value="name-asc">Name A-Z</option>
+            <option value="name-desc">Name Z-A</option>
+            <option value="goalAmount-desc">Highest Goal</option>
+            <option value="goalAmount-asc">Lowest Goal</option>
+          </select>
+
+          <select 
+            value={filters.size}
+            onChange={(e) => setFilters({...filters, size: parseInt(e.target.value), page: 0})}
+          >
+            <option value="10">10 per page</option>
+            <option value="20">20 per page</option>
+            <option value="50">50 per page</option>
+            <option value="100">100 per page</option>
+          </select>
+
+          <button onClick={handleExport} className="export-btn">
+            📊 Export
+          </button>
+        </div>
+
+        {/* Bulk Actions */}
+        {selectedCampaigns.length > 0 && (
+          <div className="bulk-actions">
+            <span className="selected-count">
+              {selectedCampaigns.length} selected
+            </span>
+            <button onClick={handleBulkApprove} className="bulk-btn approve">
+              ✅ Bulk Approve
+            </button>
+            <button onClick={handleBulkReject} className="bulk-btn reject">
+              ❌ Bulk Reject
+            </button>
+            <button onClick={() => setSelectedCampaigns([])} className="bulk-btn clear">
+              Clear Selection
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Campaign List */}
+      <div className="campaign-list">
+        <div className="campaign-list-header">
+          <label className="select-all">
+            <input
+              type="checkbox"
+              checked={selectedCampaigns.length === campaigns.length && campaigns.length > 0}
+              onChange={(e) => handleSelectAll(e.target.checked)}
+            />
+            <span>Select All</span>
+          </label>
+          <span className="campaign-count">
+            {campaigns.length} campaigns found
+            {pagination && ` (Page ${pagination.currentPage + 1} of ${pagination.totalPages})`}
+          </span>
+        </div>
+
+        {loading && <LoadingSpinner message="Loading campaigns..." />}
+        
+        {error && <ErrorMessage message={error} onRetry={fetchCampaigns} />}
+
+        {campaigns.length === 0 && !loading && !error && (
+          <div className="no-campaigns">
+            <h3>No campaigns found</h3>
+            <p>No campaigns match the current filters.</p>
+          </div>
+        )}
+
+        <div className="campaigns-grid">
+          {campaigns.map(campaign => (
+            <CampaignCard
+              key={campaign.id}
+              campaign={campaign}
+              isSelected={selectedCampaigns.includes(campaign.id)}
+              onSelect={(isSelected) => handleSelectCampaign(campaign.id, isSelected)}
+              onApprove={() => handleApproveCampaign(campaign.id)}
+              onReject={() => handleRejectCampaign(campaign.id)}
+              formatCurrency={formatCurrency}
+              formatDate={formatDate}
+            />
+          ))}
+        </div>
+
+        {/* Pagination */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="pagination">
+            <button
+              onClick={() => setFilters({...filters, page: Math.max(0, filters.page - 1)})}
+              disabled={filters.page === 0}
+              className="pagination-btn"
+            >
+              ← Previous
+            </button>
+            
+            <div className="pagination-info">
+              <span>Page {filters.page + 1} of {pagination.totalPages}</span>
+              <span>({pagination.totalElements} total campaigns)</span>
             </div>
             
-            <div className="stat-card total-pending-value">
-              <div className="stat-icon">💰</div>
-              <div className="stat-content">
-                <h3>Total Pending Value</h3>
-                <div className="stat-number">
-                  {formatCurrency(
-                    pendingCampaigns.reduce((sum, c) => sum + (c.goalAmount || 0), 0)
-                  )}
-                </div>
-                <div className="stat-description">Goal amount sum</div>
-              </div>
-            </div>
+            <button
+              onClick={() => setFilters({...filters, page: Math.min(pagination.totalPages - 1, filters.page + 1)})}
+              disabled={filters.page >= pagination.totalPages - 1}
+              className="pagination-btn"
+            >
+              Next →
+            </button>
           </div>
-
-          {pendingCampaigns.length === 0 ? (
-            <div className="no-pending">
-              <div className="no-pending-icon">✅</div>
-              <h3>All caught up!</h3>
-              <p>There are no campaigns pending approval at the moment.</p>
-            </div>
-          ) : (
-            <div className="pending-campaigns-list">
-              {pendingCampaigns.map(campaign => (
-                <PendingCampaignCard 
-                  key={campaign.id}
-                  campaign={campaign}
-                  onApprove={() => handleApprove(campaign.id)}
-                  onReject={() => handleReject(campaign.id)}
-                  isLoading={actionLoading[campaign.id]}
-                  formatCurrency={formatCurrency}
-                  formatDate={formatDate}
-                />
-              ))}
-            </div>
-          )}
-        </>
-      )}
+        )}
+      </div>
     </div>
   );
 };
 
-// Pending Campaign Card Component
-const PendingCampaignCard = ({ 
+// Campaign Card Component
+const CampaignCard = ({ 
   campaign, 
+  isSelected, 
+  onSelect, 
   onApprove, 
-  onReject, 
-  isLoading,
+  onReject,
   formatCurrency,
   formatDate 
 }) => {
   return (
-    <div className="pending-campaign-card">
-      <div className="campaign-header">
-        <div className="campaign-image">
+    <div className={`admin-campaign-card ${isSelected ? 'selected' : ''}`}>
+      <div className="campaign-card-header">
+        <label className="campaign-select">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={(e) => onSelect(e.target.checked)}
+          />
+        </label>
+        <div className={`status-badge ${campaign.status}`}>
+          {campaign.status}
+        </div>
+      </div>
+
+      <div className="campaign-card-content">
+        <div className="campaign-image-section">
           {campaign.imageUrl ? (
-            <img src={campaign.imageUrl} alt={campaign.name} />
+            <img src={campaign.imageUrl} alt={campaign.name} className="campaign-thumbnail" />
           ) : (
             <div className="no-image-placeholder">📋</div>
           )}
         </div>
-        
-        <div className="campaign-info">
+
+        <div className="campaign-details">
           <h3 className="campaign-name">{campaign.name}</h3>
           <p className="campaign-creator">
             <strong>Creator:</strong> {campaign.creatorUsername || 'Unknown'}
@@ -433,108 +371,74 @@ const PendingCampaignCard = ({
           <p className="campaign-category">
             <strong>Category:</strong> {campaign.category}
           </p>
-          <p className="campaign-submitted">
-            <strong>Submitted:</strong> {formatDate(campaign.createdAt)}
-          </p>
+
+          <div className="campaign-metrics">
+            <div className="metric">
+              <span className="metric-label">Goal Amount</span>
+              <span className="metric-value">{formatCurrency(campaign.goalAmount)}</span>
+            </div>
+            <div className="metric">
+              <span className="metric-label">Raised Amount</span>
+              <span className="metric-value">{formatCurrency(campaign.raisedAmount)}</span>
+            </div>
+            <div className="metric">
+              <span className="metric-label">Progress</span>
+              <span className="metric-value">{campaign.completionPercentage?.toFixed(1)}%</span>
+            </div>
+          </div>
+
+          <div className="campaign-dates">
+            <div className="date-item">
+              <span className="date-label">Created</span>
+              <span className="date-value">{formatDate(campaign.createdAt)}</span>
+            </div>
+            <div className="date-item">
+              <span className="date-label">Start Date</span>
+              <span className="date-value">{formatDate(campaign.startDate)}</span>
+            </div>
+            <div className="date-item">
+              <span className="date-label">End Date</span>
+              <span className="date-value">{formatDate(campaign.endDate)}</span>
+            </div>
+          </div>
+
+          <div className="campaign-description">
+            <strong>Description:</strong>
+            <p>{campaign.description}</p>
+          </div>
         </div>
       </div>
 
-      <div className="campaign-details">
-        <div className="campaign-description">
-          <h4>Description</h4>
-          <p>{campaign.description}</p>
-        </div>
+      <div className="campaign-card-actions">
+        <button className="view-btn">
+          👁️ View Details
+        </button>
 
-        <div className="campaign-metrics">
-          <div className="metric">
-            <span className="metric-label">Goal Amount</span>
-            <span className="metric-value">{formatCurrency(campaign.goalAmount)}</span>
-          </div>
-          <div className="metric">
-            <span className="metric-label">Duration</span>
-            <span className="metric-value">
-              {formatDate(campaign.startDate)} - {formatDate(campaign.endDate)}
-            </span>
-          </div>
-          <div className="metric">
-            <span className="metric-label">Campaign Length</span>
-            <span className="metric-value">{campaign.daysRemaining} days</span>
-          </div>
-        </div>
+        {campaign.status === 'pending' && (
+          <>
+            <button onClick={onApprove} className="action-btn approve">
+              ✅ Approve
+            </button>
+            <button onClick={onReject} className="action-btn reject">
+              ❌ Reject
+            </button>
+          </>
+        )}
 
-        {campaign.documentUrl && (
-          <div className="campaign-documents">
-            <h4>Supporting Documents</h4>
-            <a 
-              href={campaign.documentUrl} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="document-link"
-            >
-              📄 View Document
-            </a>
+        {campaign.status === 'approved' && (
+          <div className="approved-indicator">
+            ✅ Approved
+          </div>
+        )}
+
+        {campaign.status === 'rejected' && (
+          <div className="rejected-indicator">
+            ❌ Rejected
           </div>
         )}
       </div>
-
-      <div className="campaign-actions">
-        <button 
-          onClick={onApprove}
-          disabled={isLoading}
-          className={`action-btn approve ${isLoading === 'approving' ? 'loading' : ''}`}
-        >
-          {isLoading === 'approving' ? (
-            <>
-              <span className="spinner"></span>
-              Approving...
-            </>
-          ) : (
-            <>
-              ✅ Approve Campaign
-            </>
-          )}
-        </button>
-        
-        <button 
-          onClick={onReject}
-          disabled={isLoading}
-          className={`action-btn reject ${isLoading === 'rejecting' ? 'loading' : ''}`}
-        >
-          {isLoading === 'rejecting' ? (
-            <>
-              <span className="spinner"></span>
-              Rejecting...
-            </>
-          ) : (
-            <>
-              ❌ Reject Campaign
-            </>
-          )}
-        </button>
-      </div>
     </div>
   );
 };
 
-// System Tab Component
-const SystemTab = () => {
-  return (
-    <div className="system-tab">
-      <h2>⚙️ System Management</h2>
-      <p>System management functionality will be implemented here.</p>
-      <div className="tab-actions">
-        <button className="action-btn primary">
-          System Health Check
-        </button>
-        <button className="action-btn secondary">
-          System Configuration
-        </button>
-        <button className="action-btn tertiary">
-          Maintenance Mode
-        </button>
-      </div>
-    </div>
-  );
-};
-
-export default AdminDashboard;
+export default AdminCampaignManagement;

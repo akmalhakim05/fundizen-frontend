@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorMessage from '../common/ErrorMessage';
-import AdminDocumentViewer from './AdminDocumentViewer'; // Import the document viewer
+import AdminDocumentViewer from './AdminDocumentViewer';
 import { adminService } from '../../services/adminService';
 import '../../styles/components/AdminDashboard.css';
+import AdminCampaignManagement from './AdminCampaignManagement';
+import AdminSystemStats from './AdminSystemStats';
+import AdminUserManagement from './AdminUserManagement';
 
 const AdminDashboard = () => {
   const { currentUser, userData } = useAuth();
@@ -37,11 +40,12 @@ const AdminDashboard = () => {
   };
 
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: '📊' },
-    { id: 'campaigns', label: 'Campaigns', icon: '📋' },
-    { id: 'pending', label: 'Pending Approvals', icon: '⏳' },
-    { id: 'analytics', label: 'Analytics', icon: '📈' },
-    { id: 'system', label: 'System', icon: '⚙️' }
+  { id: 'overview', label: 'Overview', icon: '📊' },
+  { id: 'campaigns', label: 'Campaigns', icon: '📋' },
+  { id: 'pending', label: 'Pending Approvals', icon: '⏳' },
+  { id: 'users', label: 'Users', icon: '👥' },
+  { id: 'analytics', label: 'Analytics', icon: '📈' },
+  { id: 'system', label: 'System', icon: '⚙️' }
   ];
 
   const renderTabContent = () => {
@@ -49,11 +53,13 @@ const AdminDashboard = () => {
       case 'overview':
         return <OverviewTab data={dashboardData} onRefresh={fetchDashboardData} />;
       case 'campaigns':
-        return <CampaignsTab />;
+        return <AdminCampaignManagement />;
       case 'pending':
         return <PendingApprovalsTab data={dashboardData} onRefresh={fetchDashboardData} />;
+      case 'users':
+        return <AdminUserManagement />;
       case 'analytics':
-        return <AnalyticsTab />;
+        return <AdminSystemStats />;
       case 'system':
         return <SystemTab />;
       default:
