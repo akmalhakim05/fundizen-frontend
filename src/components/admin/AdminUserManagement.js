@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { adminService } from '../../services/adminService';
-import LoadingSpinner from '../common/LoadingSpinner';
-import ErrorMessage from '../common/ErrorMessage';
+import { adminService } from '../services/adminService';
+import LoadingSpinner from '../../common/LoadingSpinner';
+import ErrorMessage from '../../common/ErrorMessage';
 import '../../styles/components/AdminUserManagement.css';
 
 const AdminUserManagement = () => {

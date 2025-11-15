@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { adminService } from '../../services/adminService';
-import LoadingSpinner from '../common/LoadingSpinner';
-import ErrorMessage from '../common/ErrorMessage';
+import { adminService } from '../services/adminService';
+import LoadingSpinner from '../../common/LoadingSpinner';
+import ErrorMessage from '../../common/ErrorMessage';
 import {
   Chart as ChartJS,
   CategoryScale,

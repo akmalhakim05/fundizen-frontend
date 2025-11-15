@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import '../../styles/components/Layout.css';
 
 const Header = () => {
@@ -29,7 +29,7 @@ const Header = () => {
       <div className="header-container">
         {/* Logo */}
         <Link to="/" className="logo">
-          <span className="logo-icon">💰</span>
+          <i class="fas fa-dollar-sign"></i>
           <span className="logo-text">Fundizen</span>
         </Link>
 
@@ -58,7 +58,7 @@ const Header = () => {
                 <span className="user-name">
                   {userData?.username || currentUser.displayName || 'User'}
                 </span>
-                {isAdmin && <span className="admin-indicator">👑</span>}
+                {isAdmin && <span className="admin-indicator"><i class="fas fa-crown"></i></span>}
                 <span className="dropdown-arrow">▼</span>
               </button>
 

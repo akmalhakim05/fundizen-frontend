@@ -1,11 +1,14 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
-import AdminLogin from './components/admin/AdminLogin';
+import '@fortawesome/fontawesome-free/css/all.min.css';
+import './styles/global.css';
+import './styles/admin-layout.css';
+import AdminLogin from './components/auth/AdminLogin';
 import AdminDashboard from './components/admin/AdminDashboard';
 import AdminCampaignManagement from './components/admin/AdminCampaignManagement';
 import AdminUserManagement from './components/admin/AdminUserManagement';
-import AdminRoute from './components/admin/AdminRoute';
+import AdminRoute from './components/auth/AdminRoute';
 
 function App() {
   return (

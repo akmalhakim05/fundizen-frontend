@@ -5,8 +5,8 @@ import {
   onAuthStateChanged,
   getIdToken
 } from 'firebase/auth';
-import { auth } from '../firebase/config';
-import api from '../services/api';
+import { auth } from '../configs/firebase';
+import api from '../components/services/api';
 
 const AuthContext = createContext();
 

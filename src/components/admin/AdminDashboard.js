@@ -2,12 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorMessage from '../common/ErrorMessage';
-import AdminDocumentViewer from './AdminDocumentViewer';
 import { adminService } from '../../services/adminService';
-import '../../styles/components/AdminDashboard.css';
-import AdminCampaignManagement from './AdminCampaignManagement';
-import AdminSystemStats from './AdminSystemStats';
-import AdminUserManagement from './AdminUserManagement';
+
+// EXAMPLE: Updated AdminDashboard with Icons (not emojis)
+// This demonstrates the improved UI structure
 
 const AdminDashboard = () => {
   const { currentUser, userData } = useAuth();
@@ -15,8 +13,8 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [dashboardData, setDashboardData] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Check if user is admin
   const isAdmin = userData?.role === 'admin' || userData?.isAdmin;
 
   useEffect(() => {
@@ -39,41 +37,13 @@ const AdminDashboard = () => {
     }
   };
 
-  const tabs = [
-  { id: 'overview', label: 'Overview', icon: '📊' },
-  { id: 'campaigns', label: 'Campaigns', icon: '📋' },
-  { id: 'pending', label: 'Pending Approvals', icon: '⏳' },
-  { id: 'users', label: 'Users', icon: '👥' },
-  { id: 'analytics', label: 'Analytics', icon: '📈' },
-  { id: 'system', label: 'System', icon: '⚙️' }
-  ];
-
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'overview':
-        return <OverviewTab data={dashboardData} onRefresh={fetchDashboardData} />;
-      case 'campaigns':
-        return <AdminCampaignManagement />;
-      case 'pending':
-        return <PendingApprovalsTab data={dashboardData} onRefresh={fetchDashboardData} />;
-      case 'users':
-        return <AdminUserManagement />;
-      case 'analytics':
-        return <AdminSystemStats />;
-      case 'system':
-        return <SystemTab />;
-      default:
-        return <OverviewTab data={dashboardData} onRefresh={fetchDashboardData} />;
-    }
-  };
-
   if (!isAdmin) {
     return (
       <div className="admin-access-denied">
         <div className="access-denied-content">
-          <h2>🚫 Access Denied</h2>
+          <i className="fas fa-ban" style={{ fontSize: '4rem', color: 'var(--accent-red)', marginBottom: '1rem' }}></i>
+          <h2>Access Denied</h2>
           <p>You don't have administrator privileges to access this page.</p>
-          <p>Please contact your system administrator if you believe this is an error.</p>
         </div>
       </div>
     );
@@ -88,538 +58,353 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="admin-dashboard">
-      <div className="admin-header">
-        <h1>🛠️ Admin Dashboard</h1>
-        <p>Manage campaigns and system settings</p>
-        <div className="admin-user-info">
-          <span>Welcome, {userData?.username || currentUser?.email}</span>
-          <span className="admin-badge">Administrator</span>
-        </div>
-      </div>
-
-      <div className="admin-nav">
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            className={`admin-nav-tab ${activeTab === tab.id ? 'active' : ''}`}
-            onClick={() => setActiveTab(tab.id)}
+    <div className={`admin-wrapper ${sidebarOpen ? 'sidebar-open' : ''}`}>
+      {/* TOP HEADER */}
+      <header className="admin-header">
+        <div className="admin-header-content">
+          {/* Mobile Menu Toggle */}
+          <button 
+            className="admin-mobile-toggle"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            aria-label="Toggle menu"
           >
-            <span className="tab-icon">{tab.icon}</span>
-            <span className="tab-label">{tab.label}</span>
-            {tab.id === 'pending' && dashboardData?.campaigns?.pending > 0 && (
-              <span className="notification-badge">{dashboardData.campaigns.pending}</span>
-            )}
+            <span></span>
+            <span></span>
+            <span></span>
           </button>
-        ))}
-      </div>
 
-      <div className="admin-content">
-        {renderTabContent()}
-      </div>
-    </div>
-  );
-};
-
-// Overview Tab Component
-const OverviewTab = ({ data, onRefresh }) => {
-  if (!data) return <LoadingSpinner message="Loading overview..." />;
-
-  return (
-    <div className="overview-tab">
-      <div className="overview-header">
-        <h2>📊 System Overview</h2>
-        <button onClick={onRefresh} className="refresh-btn">
-          🔄 Refresh
-        </button>
-      </div>
-
-      <div className="stats-grid">
-        <div className="stat-card campaigns">
-          <div className="stat-icon">📋</div>
-          <div className="stat-content">
-            <h3>Campaigns</h3>
-            <div className="stat-number">{data.campaigns?.total || 0}</div>
-            <div className="stat-breakdown">
-              <span>Active: {data.campaigns?.active || 0}</span>
-              <span>Pending: {data.campaigns?.pending || 0}</span>
-              <span>Approved: {data.campaigns?.approved || 0}</span>
+          {/* Brand/Logo */}
+          <div className="admin-brand">
+            <div className="admin-brand-icon">
+              <i className="fas fa-rocket"></i>
             </div>
+            <span className="admin-brand-text">Fundizen Admin</span>
           </div>
-        </div>
 
-        <div className="stat-card activity">
-          <div className="stat-icon">📈</div>
-          <div className="stat-content">
-            <h3>Activity</h3>
-            <div className="stat-number">{data.activity?.pendingApprovals || 0}</div>
-            <div className="stat-breakdown">
-              <span>Pending Work: {data.activity?.totalPendingWork || 0}</span>
-              <span>Recent Activity: {data.activity?.recentActivity || 0}</span>
-            </div>
+          {/* Search Bar */}
+          <div className="admin-header-search">
+            <i className="fas fa-search admin-header-search-icon"></i>
+            <input 
+              type="text" 
+              className="admin-header-search-input" 
+              placeholder="Search campaigns, users..."
+            />
           </div>
-        </div>
 
-        <div className="stat-card system">
-          <div className="stat-icon">⚙️</div>
-          <div className="stat-content">
-            <h3>System Status</h3>
-            <div className="stat-status healthy">Healthy</div>
-            <div className="stat-breakdown">
-              <span>Updated: {new Date().toLocaleTimeString()}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="stat-card analytics">
-          <div className="stat-icon">📊</div>
-          <div className="stat-content">
-            <h3>Analytics</h3>
-            <div className="stat-number">{data.analytics?.totalViews || 0}</div>
-            <div className="stat-breakdown">
-              <span>Campaign Views</span>
-              <span>This Month</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="quick-actions">
-        <h3>🚀 Quick Actions</h3>
-        <div className="action-buttons">
-          <button className="action-btn primary">
-            📋 Review Pending Campaigns
-          </button>
-          <button className="action-btn secondary">
-            📊 Generate Reports
-          </button>
-          <button className="action-btn tertiary">
-            ⚙️ System Settings
-          </button>
-        </div>
-      </div>
-
-      <div className="recent-activity">
-        <h3>📈 Recent Activity</h3>
-        <div className="activity-list">
-          <div className="activity-item">
-            <span className="activity-icon">📋</span>
-            <span className="activity-text">New campaign submitted for review</span>
-            <span className="activity-time">2 minutes ago</span>
-          </div>
-          <div className="activity-item">
-            <span className="activity-icon">✅</span>
-            <span className="activity-text">Campaign approved</span>
-            <span className="activity-time">1 hour ago</span>
-          </div>
-          <div className="activity-item">
-            <span className="activity-icon">📊</span>
-            <span className="activity-text">Daily report generated</span>
-            <span className="activity-time">3 hours ago</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Campaigns Tab Component
-const CampaignsTab = () => {
-  return (
-    <div className="campaigns-tab">
-      <h2>📋 Campaign Management</h2>
-      <p>Campaign management functionality will be implemented here.</p>
-      <div className="tab-actions">
-        <button className="action-btn primary">
-          View All Campaigns
-        </button>
-        <button className="action-btn secondary">
-          Export Campaign Data
-        </button>
-      </div>
-    </div>
-  );
-};
-
-// Analytics Tab Component
-const AnalyticsTab = () => {
-  return (
-    <div className="analytics-tab">
-      <h2>📈 Analytics & Reports</h2>
-      <p>Analytics and reporting functionality will be implemented here.</p>
-      <div className="tab-actions">
-        <button className="action-btn primary">
-          Campaign Analytics
-        </button>
-        <button className="action-btn secondary">
-          System Reports
-        </button>
-        <button className="action-btn tertiary">
-          Export Data
-        </button>
-      </div>
-    </div>
-  );
-};
-
-// ✅ ENHANCED: Pending Approvals Tab Component with Document Viewer
-const PendingApprovalsTab = ({ data, onRefresh }) => {
-  const [pendingCampaigns, setPendingCampaigns] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [actionLoading, setActionLoading] = useState({});
-
-  useEffect(() => {
-    fetchPendingCampaigns();
-  }, []);
-
-  const fetchPendingCampaigns = async () => {
-    try {
-      setLoading(true);
-      setError('');
-      const response = await adminService.getPendingCampaigns();
-      setPendingCampaigns(response.campaigns || []);
-    } catch (error) {
-      console.error('Error fetching pending campaigns:', error);
-      setError('Failed to load pending campaigns');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleApprove = async (campaignId) => {
-    try {
-      setActionLoading(prev => ({ ...prev, [campaignId]: 'approving' }));
-      await adminService.approveCampaign(campaignId);
-      
-      // Remove from pending list
-      setPendingCampaigns(prev => prev.filter(c => c.id !== campaignId));
-      
-      // Refresh dashboard data
-      if (onRefresh) onRefresh();
-      
-      alert('Campaign approved successfully!');
-    } catch (error) {
-      console.error('Error approving campaign:', error);
-      alert('Failed to approve campaign: ' + (error.error || error.message));
-    } finally {
-      setActionLoading(prev => ({ ...prev, [campaignId]: null }));
-    }
-  };
-
-  const handleReject = async (campaignId) => {
-    const reason = prompt('Please provide a reason for rejection (optional):');
-    if (reason === null) return; // User cancelled
-
-    try {
-      setActionLoading(prev => ({ ...prev, [campaignId]: 'rejecting' }));
-      await adminService.rejectCampaign(campaignId, reason || '');
-      
-      // Remove from pending list
-      setPendingCampaigns(prev => prev.filter(c => c.id !== campaignId));
-      
-      // Refresh dashboard data
-      if (onRefresh) onRefresh();
-      
-      alert('Campaign rejected successfully!');
-    } catch (error) {
-      console.error('Error rejecting campaign:', error);
-      alert('Failed to reject campaign: ' + (error.error || error.message));
-    } finally {
-      setActionLoading(prev => ({ ...prev, [campaignId]: null }));
-    }
-  };
-
-  // ✅ NEW: Handle document actions (approve/reject based on document review)
-  const handleDocumentAction = async (action, details) => {
-    console.log('Document action:', action, details);
-    
-    if (action === 'approve') {
-      await handleApprove(details.campaignId);
-    } else if (action === 'reject') {
-      await handleReject(details.campaignId);
-    } else if (action === 'download' || action === 'preview') {
-      // Log admin action for audit trail
-      console.log(`Admin ${action}ed document for campaign ${details.campaignId}`);
-    }
-  };
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-MY', {
-      style: 'currency',
-      currency: 'MYR',
-    }).format(amount || 0);
-  };
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-MY', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  return (
-    <div className="pending-tab">
-      <div className="pending-header">
-        <h2>⏳ Pending Approvals</h2>
-        <p>Review and approve campaigns waiting for verification</p>
-        <button onClick={fetchPendingCampaigns} className="refresh-btn" disabled={loading}>
-          🔄 {loading ? 'Refreshing...' : 'Refresh'}
-        </button>
-      </div>
-
-      {loading && <LoadingSpinner message="Loading pending campaigns..." />}
-      
-      {error && <ErrorMessage message={error} onRetry={fetchPendingCampaigns} />}
-
-      {!loading && !error && (
-        <>
-          <div className="pending-stats">
-            <div className="stat-card pending-count">
-              <div className="stat-icon">⏳</div>
-              <div className="stat-content">
-                <h3>Pending Campaigns</h3>
-                <div className="stat-number">{pendingCampaigns.length}</div>
-                <div className="stat-description">Awaiting your review</div>
-              </div>
-            </div>
+          {/* Header Actions */}
+          <div className="admin-header-actions">
+            <button className="admin-header-btn" title="Notifications">
+              <i className="fas fa-bell"></i>
+              <span className="admin-header-btn-badge"></span>
+            </button>
             
-            <div className="stat-card total-pending-value">
-              <div className="stat-icon">💰</div>
-              <div className="stat-content">
-                <h3>Total Pending Value</h3>
-                <div className="stat-number">
-                  {formatCurrency(
-                    pendingCampaigns.reduce((sum, c) => sum + (c.goalAmount || 0), 0)
-                  )}
+            <button className="admin-header-btn" title="Settings">
+              <i className="fas fa-cog"></i>
+            </button>
+
+            {/* User Menu */}
+            <div className="admin-header-user">
+              <div className="admin-header-user-avatar">
+                {userData?.username?.[0]?.toUpperCase() || 'A'}
+              </div>
+              <div className="admin-header-user-info">
+                <div className="admin-header-user-name">
+                  {userData?.username || currentUser?.email}
                 </div>
-                <div className="stat-description">Goal amount sum</div>
+                <div className="admin-header-user-role">Administrator</div>
               </div>
             </div>
           </div>
+        </div>
+      </header>
 
-          {pendingCampaigns.length === 0 ? (
-            <div className="no-pending">
-              <div className="no-pending-icon">✅</div>
-              <h3>All caught up!</h3>
-              <p>There are no campaigns pending approval at the moment.</p>
-            </div>
-          ) : (
-            <div className="pending-campaigns-list">
-              {pendingCampaigns.map(campaign => (
-                <PendingCampaignCard 
-                  key={campaign.id}
-                  campaign={campaign}
-                  onApprove={() => handleApprove(campaign.id)}
-                  onReject={() => handleReject(campaign.id)}
-                  onDocumentAction={handleDocumentAction}
-                  isLoading={actionLoading[campaign.id]}
-                  formatCurrency={formatCurrency}
-                  formatDate={formatDate}
-                />
-              ))}
-            </div>
-          )}
-        </>
+      {/* SIDEBAR */}
+      <aside className="admin-sidebar">
+        <div className="admin-sidebar-inner">
+          {/* Main Navigation */}
+          <nav className="admin-nav-section">
+            <div className="admin-nav-title">Main Menu</div>
+            <ul className="admin-nav-list">
+              <li className="admin-nav-item">
+                <a 
+                  href="#"
+                  className={`admin-nav-link ${activeTab === 'overview' ? 'active' : ''}`}
+                  onClick={(e) => { e.preventDefault(); setActiveTab('overview'); }}
+                >
+                  <span className="admin-nav-icon">
+                    <i className="fas fa-chart-line"></i>
+                  </span>
+                  <span className="admin-nav-text">Overview</span>
+                </a>
+              </li>
+              
+              <li className="admin-nav-item">
+                <a 
+                  href="#"
+                  className={`admin-nav-link ${activeTab === 'campaigns' ? 'active' : ''}`}
+                  onClick={(e) => { e.preventDefault(); setActiveTab('campaigns'); }}
+                >
+                  <span className="admin-nav-icon">
+                    <i className="fas fa-clipboard-list"></i>
+                  </span>
+                  <span className="admin-nav-text">Campaigns</span>
+                </a>
+              </li>
+              
+              <li className="admin-nav-item">
+                <a 
+                  href="#"
+                  className={`admin-nav-link ${activeTab === 'pending' ? 'active' : ''}`}
+                  onClick={(e) => { e.preventDefault(); setActiveTab('pending'); }}
+                >
+                  <span className="admin-nav-icon">
+                    <i className="fas fa-hourglass-half"></i>
+                  </span>
+                  <span className="admin-nav-text">Pending Approvals</span>
+                  {dashboardData?.campaigns?.pending > 0 && (
+                    <span className="admin-nav-badge">
+                      {dashboardData.campaigns.pending}
+                    </span>
+                  )}
+                </a>
+              </li>
+              
+              <li className="admin-nav-item">
+                <a 
+                  href="#"
+                  className={`admin-nav-link ${activeTab === 'users' ? 'active' : ''}`}
+                  onClick={(e) => { e.preventDefault(); setActiveTab('users'); }}
+                >
+                  <span className="admin-nav-icon">
+                    <i className="fas fa-users"></i>
+                  </span>
+                  <span className="admin-nav-text">Users</span>
+                </a>
+              </li>
+              
+              <li className="admin-nav-item">
+                <a 
+                  href="#"
+                  className={`admin-nav-link ${activeTab === 'analytics' ? 'active' : ''}`}
+                  onClick={(e) => { e.preventDefault(); setActiveTab('analytics'); }}
+                >
+                  <span className="admin-nav-icon">
+                    <i className="fas fa-chart-bar"></i>
+                  </span>
+                  <span className="admin-nav-text">Analytics</span>
+                </a>
+              </li>
+            </ul>
+          </nav>
+
+          {/* System Menu */}
+          <nav className="admin-nav-section">
+            <div className="admin-nav-title">System</div>
+            <ul className="admin-nav-list">
+              <li className="admin-nav-item">
+                <a 
+                  href="#"
+                  className={`admin-nav-link ${activeTab === 'system' ? 'active' : ''}`}
+                  onClick={(e) => { e.preventDefault(); setActiveTab('system'); }}
+                >
+                  <span className="admin-nav-icon">
+                    <i className="fas fa-cog"></i>
+                  </span>
+                  <span className="admin-nav-text">Settings</span>
+                </a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </aside>
+
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="admin-sidebar-overlay" 
+          onClick={() => setSidebarOpen(false)}
+        ></div>
       )}
-    </div>
-  );
-};
 
-// ✅ ENHANCED: Pending Campaign Card Component with Document Viewer
-const PendingCampaignCard = ({ 
-  campaign, 
-  onApprove, 
-  onReject, 
-  onDocumentAction,
-  isLoading,
-  formatCurrency,
-  formatDate 
-}) => {
-  const [showDocumentViewer, setShowDocumentViewer] = useState(false);
-
-  // Debug: Log campaign data to see what we're receiving
-  useEffect(() => {
-    console.log('Campaign Data:', campaign);
-    console.log('Document URL:', campaign.documentUrl);
-    console.log('Has Document URL?', !!campaign.documentUrl);
-  }, [campaign]);
-
-  // Extract document URL with multiple fallback checks
-  const getDocumentUrl = () => {
-    // Try different possible property names
-    return campaign.documentUrl || 
-           campaign.DocumentUrl || 
-           campaign.document_url || 
-           campaign.document?.url ||
-           null;
-  };
-
-  const documentUrl = getDocumentUrl();
-
-  // Debug log
-  console.log('Extracted documentUrl:', documentUrl);
-
-  return (
-    <div className="pending-campaign-card">
-      <div className="campaign-header">
-        <div className="campaign-image">
-          {campaign.imageUrl ? (
-            <img src={campaign.imageUrl} alt={campaign.name} />
-          ) : (
-            <div className="no-image-placeholder">📋</div>
-          )}
-        </div>
-        
-        <div className="campaign-info">
-          <h3 className="campaign-name">{campaign.name}</h3>
-          <p className="campaign-creator">
-            <strong>Creator:</strong> {campaign.creatorUsername || campaign.creatorId || 'Unknown'}
-          </p>
-          <p className="campaign-category">
-            <strong>Category:</strong> {campaign.category}
-          </p>
-          <p className="campaign-submitted">
-            <strong>Submitted:</strong> {formatDate(campaign.createdAt)}
-          </p>
-        </div>
-      </div>
-
-      <div className="campaign-details">
-        <div className="campaign-description">
-          <h4>Description</h4>
-          <p>{campaign.description}</p>
-        </div>
-
-        <div className="campaign-metrics">
-          <div className="metric">
-            <span className="metric-label">Goal Amount</span>
-            <span className="metric-value">{formatCurrency(campaign.goalAmount)}</span>
-          </div>
-          <div className="metric">
-            <span className="metric-label">Duration</span>
-            <span className="metric-value">
-              {formatDate(campaign.startDate)} - {formatDate(campaign.endDate)}
-            </span>
-          </div>
-          <div className="metric">
-            <span className="metric-label">Campaign Length</span>
-            <span className="metric-value">{campaign.daysRemaining} days</span>
-          </div>
-        </div>
-
-        {/* ✅ FIXED: Better document URL checking */}
-        {documentUrl ? (
-          <div className="campaign-documents-section">
-            <div className="documents-header">
-              <h4>📄 Supporting Documents</h4>
-              <button 
-                onClick={() => setShowDocumentViewer(!showDocumentViewer)}
-                className="toggle-document-viewer-btn"
-              >
-                {showDocumentViewer ? '🔼 Hide Document Viewer' : '🔽 Show Document Viewer'}
+      {/* MAIN CONTENT */}
+      <main className="admin-main">
+        <div className="admin-main-inner">
+          {/* Page Header */}
+          <div className="admin-page-header">
+            <h1 className="admin-page-title">
+              <span className="admin-page-title-icon">
+                <i className="fas fa-tachometer-alt"></i>
+              </span>
+              Dashboard Overview
+            </h1>
+            <p className="admin-page-description">
+              Monitor your platform's performance and manage key operations
+            </p>
+            <div className="admin-page-actions">
+              <button className="btn btn-primary" onClick={fetchDashboardData}>
+                <i className="fas fa-sync-alt"></i>
+                Refresh Data
+              </button>
+              <button className="btn btn-outline">
+                <i className="fas fa-download"></i>
+                Export Report
               </button>
             </div>
-
-            {showDocumentViewer && (
-              <div className="document-viewer-container">
-                <AdminDocumentViewer
-                  documentUrl={documentUrl}
-                  campaignId={campaign.id || campaign._id || campaign._id?.$oid}
-                  campaignName={campaign.name}
-                  onDocumentAction={onDocumentAction}
-                />
-              </div>
-            )}
-
-            {/* Quick document link for convenience */}
-            {!showDocumentViewer && (
-              <div className="quick-document-access">
-                <a 
-                  href={documentUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="document-link quick-link"
-                >
-                  📄 Quick View Document
-                </a>
-                <span className="document-tip">
-                  💡 Use Document Viewer above for better admin controls
-                </span>
-              </div>
-            )}
           </div>
-        ) : (
-          <div className="no-document-section">
-            <div className="no-document-notice">
-              <span className="notice-icon">⚠️</span>
-              <span className="notice-text">No supporting document provided</span>
+
+          {/* Stats Grid */}
+          <div className="admin-stats-grid">
+            {/* Total Campaigns */}
+            <div className="admin-stat-card">
+              <div className="admin-stat-card-header">
+                <div className="admin-stat-card-icon">
+                  <i className="fas fa-clipboard-list"></i>
+                </div>
+                <div className="admin-stat-card-trend up">
+                  <i className="fas fa-arrow-up"></i> 12%
+                </div>
+              </div>
+              <div className="admin-stat-card-body">
+                <div className="admin-stat-card-label">Total Campaigns</div>
+                <div className="admin-stat-card-value">
+                  {dashboardData?.campaigns?.total || 0}
+                </div>
+              </div>
+              <div className="admin-stat-card-footer">
+                <i className="fas fa-check-circle"></i>
+                {dashboardData?.campaigns?.active || 0} Active
+              </div>
             </div>
-            {/* Debug info (remove in production) */}
-            <div style={{ fontSize: '0.75rem', color: '#999', marginTop: '8px' }}>
-              Debug: Checked documentUrl, DocumentUrl, document_url, document.url - all null/undefined
+
+            {/* Pending Approvals */}
+            <div className="admin-stat-card variant-orange">
+              <div className="admin-stat-card-header">
+                <div className="admin-stat-card-icon">
+                  <i className="fas fa-hourglass-half"></i>
+                </div>
+                <div className="admin-stat-card-trend">
+                  <i className="fas fa-clock"></i> Needs attention
+                </div>
+              </div>
+              <div className="admin-stat-card-body">
+                <div className="admin-stat-card-label">Pending Approvals</div>
+                <div className="admin-stat-card-value">
+                  {dashboardData?.activity?.pendingApprovals || 0}
+                </div>
+              </div>
+              <div className="admin-stat-card-footer">
+                <i className="fas fa-exclamation-triangle"></i>
+                Requires review
+              </div>
+            </div>
+
+            {/* Total Users */}
+            <div className="admin-stat-card variant-green">
+              <div className="admin-stat-card-header">
+                <div className="admin-stat-card-icon">
+                  <i className="fas fa-users"></i>
+                </div>
+                <div className="admin-stat-card-trend up">
+                  <i className="fas fa-arrow-up"></i> 8%
+                </div>
+              </div>
+              <div className="admin-stat-card-body">
+                <div className="admin-stat-card-label">Total Users</div>
+                <div className="admin-stat-card-value">
+                  {dashboardData?.users?.total || 0}
+                </div>
+              </div>
+              <div className="admin-stat-card-footer">
+                <i className="fas fa-user-plus"></i>
+                25 New this week
+              </div>
+            </div>
+
+            {/* System Status */}
+            <div className="admin-stat-card variant-purple">
+              <div className="admin-stat-card-header">
+                <div className="admin-stat-card-icon">
+                  <i className="fas fa-server"></i>
+                </div>
+                <div className="admin-stat-card-trend up">
+                  <i className="fas fa-check"></i> Healthy
+                </div>
+              </div>
+              <div className="admin-stat-card-body">
+                <div className="admin-stat-card-label">System Status</div>
+                <div className="admin-stat-card-value" style={{ fontSize: '1.5rem' }}>
+                  All Systems Go
+                </div>
+              </div>
+              <div className="admin-stat-card-footer">
+                <i className="fas fa-clock"></i>
+                Updated: {new Date().toLocaleTimeString()}
+              </div>
             </div>
           </div>
-        )}
-      </div>
 
-      <div className="campaign-actions">
-        <button 
-          onClick={onApprove}
-          disabled={isLoading}
-          className={`action-btn approve ${isLoading === 'approving' ? 'loading' : ''}`}
-        >
-          {isLoading === 'approving' ? (
-            <>
-              <span className="spinner"></span>
-              Approving...
-            </>
-          ) : (
-            <>
-              ✅ Approve Campaign
-            </>
-          )}
-        </button>
-        
-        <button 
-          onClick={onReject}
-          disabled={isLoading}
-          className={`action-btn reject ${isLoading === 'rejecting' ? 'loading' : ''}`}
-        >
-          {isLoading === 'rejecting' ? (
-            <>
-              <span className="spinner"></span>
-              Rejecting...
-            </>
-          ) : (
-            <>
-              ❌ Reject Campaign
-            </>
-          )}
-        </button>
-      </div>
-    </div>
-  );
-};
+          {/* Quick Actions */}
+          <div className="card">
+            <div className="card-header">
+              <h3 className="card-title">
+                <i className="fas fa-bolt"></i> Quick Actions
+              </h3>
+            </div>
+            <div className="card-body">
+              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                <button className="btn btn-primary">
+                  <i className="fas fa-clipboard-check"></i>
+                  Review Pending Campaigns
+                </button>
+                <button className="btn btn-secondary">
+                  <i className="fas fa-file-download"></i>
+                  Generate Reports
+                </button>
+                <button className="btn btn-outline">
+                  <i className="fas fa-cog"></i>
+                  System Settings
+                </button>
+              </div>
+            </div>
+          </div>
 
-// System Tab Component
-const SystemTab = () => {
-  return (
-    <div className="system-tab">
-      <h2>⚙️ System Management</h2>
-      <p>System management functionality will be implemented here.</p>
-      <div className="tab-actions">
-        <button className="action-btn primary">
-          System Health Check
-        </button>
-        <button className="action-btn secondary">
-          System Configuration
-        </button>
-        <button className="action-btn tertiary">
-          Maintenance Mode
-        </button>
-      </div>
+          {/* Recent Activity */}
+          <div className="card" style={{ marginTop: 'var(--spacing-xl)' }}>
+            <div className="card-header">
+              <h3 className="card-title">
+                <i className="fas fa-history"></i> Recent Activity
+              </h3>
+            </div>
+            <div className="card-body">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div className="alert alert-info">
+                  <i className="fas fa-clipboard-list alert-icon"></i>
+                  <div className="alert-content">
+                    <div className="alert-title">New campaign submitted</div>
+                    <div>2 minutes ago</div>
+                  </div>
+                </div>
+                
+                <div className="alert alert-success">
+                  <i className="fas fa-check-circle alert-icon"></i>
+                  <div className="alert-content">
+                    <div className="alert-title">Campaign approved</div>
+                    <div>1 hour ago</div>
+                  </div>
+                </div>
+                
+                <div className="alert alert-warning">
+                  <i className="fas fa-exclamation-triangle alert-icon"></i>
+                  <div className="alert-content">
+                    <div className="alert-title">System maintenance scheduled</div>
+                    <div>3 hours ago</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
   );
 };

@@ -64,7 +64,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Try to refresh token if we have Firebase auth
       try {
-        const { auth } = await import('../firebase/config');
+        const { auth } = await import('../../configs/firebase');
         const { getIdToken } = await import('firebase/auth');
         
         if (auth.currentUser) {
@@ -103,7 +103,7 @@ export const testLogin = async (email, password) => {
     
     // Import Firebase dynamically to avoid issues if not configured
     const { signInWithEmailAndPassword, getIdToken } = await import('firebase/auth');
-    const { auth } = await import('../firebase/config');
+    const { auth } = await import('../../configs/firebase');
     
     // Step 1: Sign in with Firebase
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
