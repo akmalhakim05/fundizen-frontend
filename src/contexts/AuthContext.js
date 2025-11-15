@@ -6,7 +6,7 @@ import {
   getIdToken
 } from 'firebase/auth';
 import { auth } from '../configs/firebase';
-import api from '../components/services/api';
+import api from '../services/api';
 
 const AuthContext = createContext();
 

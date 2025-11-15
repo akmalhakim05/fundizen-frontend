@@ -1,5 +1,5 @@
 import React from 'react';
-import '../../styles/components/Common.css';
+import '../styles/components/Common.css';
 
 const LoadingSpinner = ({ message = 'Loading...' }) => {
   return (

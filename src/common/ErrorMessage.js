@@ -1,6 +1,6 @@
 // src/components/common/ErrorMessage.js
 import React from 'react';
-import '../../styles/components/Common.css';
+import '../styles/components/Common.css';
 
 const ErrorMessage = ({ message, onRetry }) => {
   return (
