@@ -8,6 +8,7 @@ import AdminLogin from './components/auth/AdminLogin';
 import AdminDashboard from './components/admin/AdminDashboard';
 import AdminCampaignManagement from './components/admin/AdminCampaignManagement';
 import AdminUserManagement from './components/admin/AdminUserManagement';
+import AdminSystemStats from './components/admin/AdminSystemStats';
 import AdminRoute from './components/auth/AdminRoute';
 
 function App() {
@@ -17,6 +18,8 @@ function App() {
         <div className="App">
           <Routes>
             <Route path="/admin/login" element={<AdminLogin />} />
+            
+            {/* Main Admin Dashboard - handles overview and pending approvals */}
             <Route 
               path="/admin" 
               element={
@@ -25,22 +28,48 @@ function App() {
                 </AdminRoute>
               } 
             />
+            
+            {/* Campaign Management */}
             <Route 
               path="/admin/campaigns" 
               element={
                 <AdminRoute>
-                  <AdminCampaignManagement />
+                  <AdminDashboard />
                 </AdminRoute>
               } 
             />
+            
+            {/* User Management */}
             <Route 
               path="/admin/users" 
               element={
                 <AdminRoute>
-                  <AdminUserManagement />
+                  <AdminDashboard />
                 </AdminRoute>
               } 
             />
+            
+            {/* Analytics/System Stats */}
+            <Route 
+              path="/admin/analytics" 
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              } 
+            />
+            
+            {/* Settings */}
+            <Route 
+              path="/admin/settings" 
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              } 
+            />
+            
+            {/* Fallback to login */}
             <Route path="*" element={<AdminLogin />} />
           </Routes>
         </div>
