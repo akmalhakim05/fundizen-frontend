@@ -2,6 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import LoadingSpinner from '../../common/LoadingSpinner';
+import { 
+  Shield, 
+  Mail, 
+  Lock, 
+  AlertCircle,
+  LogIn 
+} from 'lucide-react'; // Using lucide-react (lightweight & beautiful)
 import '../../styles/components/AdminAuth.css';
 
 const AdminLogin = () => {
@@ -29,12 +36,9 @@ const AdminLogin = () => {
 
     try {
       console.log('Starting Firebase login process...');
-      
       const user = await login(formData.email, formData.password);
-      
       console.log('Login successful, user:', user);
       
-      // Check if user is admin
       if (user && (user.role === 'admin' || user.isAdmin)) {
         navigate('/admin');
       } else {
@@ -42,17 +46,10 @@ const AdminLogin = () => {
       }
     } catch (error) {
       console.error('Login error in component:', error);
-      
       let errorMessage = 'Login failed. Please check your credentials.';
-      
-      if (error.error) {
-        errorMessage = error.error;
-      } else if (error.message) {
-        errorMessage = error.message;
-      } else if (typeof error === 'string') {
-        errorMessage = error;
-      }
-      
+      if (error.error) errorMessage = error.error;
+      else if (error.message) errorMessage = error.message;
+      else if (typeof error === 'string') errorMessage = error;
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -64,61 +61,82 @@ const AdminLogin = () => {
   }
 
   return (
-    <div className="admin-login-container">
-      <div className="admin-login-card">
-        <div className="admin-login-header">
-          <div className="admin-logo">
-            <span className="admin-logo-icon">🛠️</span>
-            <h1>Admin Portal</h1>
-          </div>
-          <p>Sign in to access the admin dashboard</p>
-        </div>
-
-        {error && (
-          <div className="admin-error-alert">
-            <span className="error-icon">⚠️</span>
-            <span>{error}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="admin-login-form">
-          <div className="admin-form-group">
-            <label htmlFor="email">Email Address</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              placeholder="Enter your email"
-            />
+    <div className="admin-login-wrapper">
+      <div className="admin-login-container">
+        <div className="admin-login-card">
+          {/* Header */}
+          <div className="admin-login-header">
+            <div className="admin-logo">
+              <Shield size={48} className="shield-icon" />
+              <div>
+                <h1>Admin Portal</h1>
+                <p className="subtitle">Secure Access Control Panel</p>
+              </div>
+            </div>
+            <p className="description">
+              Sign in with your administrator credentials to access the dashboard
+            </p>
           </div>
 
-          <div className="admin-form-group">
-            <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              placeholder="Enter your password"
-            />
+          {/* Error Alert */}
+          {error && (
+            <div className="admin-error-alert">
+              <AlertCircle size={20} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="admin-login-form">
+            <div className="admin-form-group">
+              <label htmlFor="email">
+                <Mail size={16} />
+                Email Address
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                placeholder="admin@example.com"
+                autoComplete="email"
+              />
+            </div>
+
+            <div className="admin-form-group">
+              <label htmlFor="password">
+                <Lock size={16} />
+                Password
+              </label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                placeholder="••••••••••••"
+                autoComplete="current-password"
+              />
+            </div>
+
+            <button 
+              type="submit" 
+              className="admin-submit-btn"
+              disabled={loading}
+            >
+              <LogIn size={18} />
+              {loading ? 'Signing In...' : 'Sign In as Administrator'}
+            </button>
+          </form>
+
+          {/* Footer */}
+          <div className="admin-login-footer">
+            <Shield size={14} />
+            <span>Authorized Personnel Only • Restricted Access</span>
           </div>
-
-          <button 
-            type="submit" 
-            className="admin-submit-btn"
-            disabled={loading}
-          >
-            {loading ? 'Signing In...' : 'Sign In'}
-          </button>
-        </form>
-
-        <div className="admin-login-footer">
-          <p>⚠️ Authorized personnel only</p>
         </div>
       </div>
     </div>

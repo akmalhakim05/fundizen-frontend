@@ -3,6 +3,7 @@ import { adminService } from '../../services/adminService';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import ErrorMessage from '../../common/ErrorMessage';
 import '../../styles/components/AdminCampaignManagement.css';
+import { DollarSign, Eye, Users, MessageCircle, CheckCircle, XCircle, FileText } from 'lucide-react';
 
 const AdminCampaignManagement = () => {
   // State management
@@ -330,112 +331,70 @@ const AdminCampaignManagement = () => {
 };
 
 // Campaign Card Component
-const CampaignCard = ({ 
-  campaign, 
-  isSelected, 
-  onSelect, 
-  onApprove, 
-  onReject,
-  formatCurrency,
-  formatDate 
-}) => {
+const CampaignCard = ({ campaign, isSelected, onSelect, onApprove, onReject, formatCurrency, formatDate }) => {
+  const progress = campaign.completionPercentage || 0;
+  const circumference = 2 * Math.PI * 36;
+  const strokeDashoffset = circumference - (progress / 100) * circumference;
+
   return (
     <div className={`admin-campaign-card ${isSelected ? 'selected' : ''}`}>
       <div className="campaign-card-header">
-        <label className="campaign-select">
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={(e) => onSelect(e.target.checked)}
-          />
-        </label>
-        <div className={`status-badge ${campaign.status}`}>
+        <span className="campaign-id">#{campaign.id}</span>
+        <span className={`status-badge ${campaign.status}`}>
           {campaign.status}
-        </div>
+        </span>
       </div>
 
-      <div className="campaign-card-content">
-        <div className="campaign-image-section">
-          {campaign.imageUrl ? (
-            <img src={campaign.imageUrl} alt={campaign.name} className="campaign-thumbnail" />
-          ) : (
-            <div className="no-image-placeholder">📋</div>
+      <div className="campaign-thumbnail-wrapper">
+        {campaign.imageUrl ? (
+          <img src={campaign.imageUrl} alt={campaign.name} className="campaign-thumbnail" />
+        ) : (
+          <div style={{height: '100%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+            <FileText size={64} color="#94a3b8" />
+          </div>
+        )}
+      </div>
+
+      <div className="campaign-content">
+        <h3 className="campaign-name">{campaign.name}</h3>
+        <div className="campaign-meta">
+          <span><strong>By:</strong> {campaign.creatorUsername || 'Unknown'}</span>
+          <span><strong>Category:</strong> {campaign.category}</span>
+        </div>
+
+        <div style={{display: 'flex', alignItems: 'center', gap: '20px', margin: '16px 0'}}>
+          <div>
+            <div style={{fontSize: '1.1rem', fontWeight: 600}}>{formatCurrency(campaign.raisedAmount)}</div>
+            <div style={{color: '#64748b', fontSize: '0.9rem'}}>of {formatCurrency(campaign.goalAmount)}</div>
+          </div>
+          <div className="progress-ring">
+            <svg width="80" height="80">
+              <circle className="bg" cx="40" cy="40" r="36" />
+              <circle 
+                className="progress" 
+                cx="40" cy="40" r="36"
+                strokeDasharray={circumference}
+                strokeDashoffset={strokeDashoffset}
+              />
+            </svg>
+            <div className="progress-text">{progress.toFixed(0)}%</div>
+          </div>
+        </div>
+        <div className="campaign-card-actions">
+          <button className="action-btn view">
+            <Eye size={18} /> View Details
+          </button>
+          {campaign.status === 'pending' && (
+            <>
+              <button onClick={onApprove} className="action-btn approve">
+                <CheckCircle size={18} /> Approve
+              </button>
+              <button onClick={onReject} className="action-btn reject">
+                <XCircle size={18} /> Reject
+              </button>
+            </>
           )}
         </div>
-
-        <div className="campaign-details">
-          <h3 className="campaign-name">{campaign.name}</h3>
-          <p className="campaign-creator">
-            <strong>Creator:</strong> {campaign.creatorUsername || 'Unknown'}
-          </p>
-          <p className="campaign-category">
-            <strong>Category:</strong> {campaign.category}
-          </p>
-
-          <div className="campaign-metrics">
-            <div className="metric">
-              <span className="metric-label">Goal Amount</span>
-              <span className="metric-value">{formatCurrency(campaign.goalAmount)}</span>
-            </div>
-            <div className="metric">
-              <span className="metric-label">Raised Amount</span>
-              <span className="metric-value">{formatCurrency(campaign.raisedAmount)}</span>
-            </div>
-            <div className="metric">
-              <span className="metric-label">Progress</span>
-              <span className="metric-value">{campaign.completionPercentage?.toFixed(1)}%</span>
-            </div>
-          </div>
-
-          <div className="campaign-dates">
-            <div className="date-item">
-              <span className="date-label">Created</span>
-              <span className="date-value">{formatDate(campaign.createdAt)}</span>
-            </div>
-            <div className="date-item">
-              <span className="date-label">Start Date</span>
-              <span className="date-value">{formatDate(campaign.startDate)}</span>
-            </div>
-            <div className="date-item">
-              <span className="date-label">End Date</span>
-              <span className="date-value">{formatDate(campaign.endDate)}</span>
-            </div>
-          </div>
-
-          <div className="campaign-description">
-            <strong>Description:</strong>
-            <p>{campaign.description}</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="campaign-card-actions">
-        <button className="view-btn">
-          👁️ View Details
-        </button>
-
-        {campaign.status === 'pending' && (
-          <>
-            <button onClick={onApprove} className="action-btn approve">
-              ✅ Approve
-            </button>
-            <button onClick={onReject} className="action-btn reject">
-              ❌ Reject
-            </button>
-          </>
-        )}
-
-        {campaign.status === 'approved' && (
-          <div className="approved-indicator">
-            ✅ Approved
-          </div>
-        )}
-
-        {campaign.status === 'rejected' && (
-          <div className="rejected-indicator">
-            ❌ Rejected
-          </div>
-        )}
       </div>
     </div>
   );

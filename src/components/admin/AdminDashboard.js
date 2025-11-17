@@ -1,770 +1,183 @@
+// src/pages/admin/AdminDashboard.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { adminService } from '../../services/adminService';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import ErrorMessage from '../../common/ErrorMessage';
-import { adminService } from '../../services/adminService';
+import campaignService from '../../services/campaignService';
+import AdminOverview from './tabs/AdminOverview';
+import AdminPendingApprovals from './tabs/AdminPendingApprovals';
 import AdminCampaignManagement from './AdminCampaignManagement';
 import AdminUserManagement from './AdminUserManagement';
 import AdminSystemStats from './AdminSystemStats';
+import {
+  LayoutDashboard, FileText, Users, Settings, BarChart3, LogOut,
+  Bell, Search, Menu, X
+} from 'lucide-react';
 
 const AdminDashboard = () => {
   const { currentUser, userData, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [dashboardData, setDashboardData] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [pendingCampaigns, setPendingCampaigns] = useState([]);
-  const [pendingLoading, setPendingLoading] = useState(false);
 
   const isAdmin = userData?.role === 'admin' || userData?.isAdmin;
 
-  // Handle navigation based on route
   useEffect(() => {
     const path = location.pathname;
-    if (path.includes('/campaigns')) {
-      setActiveTab('campaigns');
-    } else if (path.includes('/users')) {
-      setActiveTab('users');
-    } else if (path.includes('/analytics')) {
-      setActiveTab('analytics');
-    } else if (path.includes('/settings')) {
-      setActiveTab('system');
-    } else if (path === '/admin' || path === '/admin/') {
-      setActiveTab('overview');
-    }
+    if (path.includes('/campaigns')) setActiveTab('campaigns');
+    else if (path.includes('/users')) setActiveTab('users');
+    else if (path.includes('/analytics')) setActiveTab('analytics');
+    else if (path.includes('/settings')) setActiveTab('settings');
+    else if (path.includes('/pending')) setActiveTab('pending');
+    else setActiveTab('overview');
   }, [location]);
 
   useEffect(() => {
-    if (isAdmin) {
-      fetchDashboardData();
-    }
+    if (isAdmin) fetchDashboardData();
   }, [isAdmin]);
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      setError('');
       const data = await adminService.getDashboardStats();
       setDashboardData(data);
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      setError('Failed to load dashboard data');
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchPendingCampaigns = async () => {
-    try {
-      setPendingLoading(true);
-      const data = await adminService.getPendingCampaigns();
-      setPendingCampaigns(data.campaigns || []);
-    } catch (error) {
-      console.error('Error fetching pending campaigns:', error);
-    } finally {
-      setPendingLoading(false);
-    }
-  };
-
-  const handleNavigation = (tab, path) => {
-    setActiveTab(tab);
-    navigate(path);
-    setSidebarOpen(false); // Close sidebar on mobile
-  };
-
   const handleLogout = async () => {
-    try {
-      await logout();
-      navigate('/admin/login');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
+    await logout();
+    navigate('/admin/login');
   };
+
+  const navItems = [
+    { id: 'overview', label: 'Overview', icon: LayoutDashboard, path: '/admin' },
+    { id: 'pending', label: 'Pending Approvals', icon: FileText, path: '/admin/pending', badge: dashboardData?.pendingCount },
+    { id: 'campaigns', label: 'Campaigns', icon: BarChart3, path: '/admin/campaigns' },
+    { id: 'users', label: 'Users', icon: Users, path: '/admin/users' },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/admin/analytics' },
+    { id: 'settings', label: 'Settings', icon: Settings, path: '/admin/settings' },
+  ];
 
   if (!isAdmin) {
     return (
-      <div className="admin-access-denied">
-        <div className="access-denied-content">
-          <i className="fas fa-ban" style={{ fontSize: '4rem', color: 'var(--accent-red)', marginBottom: '1rem' }}></i>
-          <h2>Access Denied</h2>
-          <p>You don't have administrator privileges to access this page.</p>
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center p-10 bg-white rounded-2xl shadow-lg">
+          <div className="text-6xl text-red-500 mb-4">Restricted Access</div>
+          <h2 className="text-2xl font-bold text-gray-800">Access Denied</h2>
+          <p className="text-gray-600 mt-2">You do not have administrator privileges.</p>
         </div>
       </div>
     );
   }
 
-  if (loading && !dashboardData) {
-    return <LoadingSpinner message="Loading admin dashboard..." />;
-  }
-
-  if (error && !dashboardData) {
-    return <ErrorMessage message={error} onRetry={fetchDashboardData} />;
-  }
+  if (loading) return <LoadingSpinner message="Loading dashboard..." />;
 
   return (
-    <div className={`admin-wrapper ${sidebarOpen ? 'sidebar-open' : ''}`}>
-      {/* TOP HEADER */}
-      <header className="admin-header">
-        <div className="admin-header-content">
-          {/* Mobile Menu Toggle */}
-          <button 
-            className="admin-mobile-toggle"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            aria-label="Toggle menu"
-          >
-            <span></span>
-            <span></span>
-            <span></span>
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Sidebar */}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:inset-0`}>
+        <div className="flex items-center justify-between p-6 border-b">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">F</div>
+            <h1 className="text-2xl font-bold text-gray-800">Fundizen Admin</h1>
+          </div>
+          <button onClick={() => setSidebarOpen(false)} className="lg:hidden">
+            <X size={24} />
           </button>
+        </div>
 
-          {/* Brand/Logo */}
-          <div className="admin-brand">
-            <div className="admin-brand-icon">
-              <i className="fas fa-rocket"></i>
-            </div>
-            <span className="admin-brand-text">Fundizen Admin</span>
-          </div>
-
-          {/* Search Bar */}
-          <div className="admin-header-search">
-            <i className="fas fa-search admin-header-search-icon"></i>
-            <input 
-              type="text" 
-              className="admin-header-search-input" 
-              placeholder="Search campaigns, users..."
-            />
-          </div>
-
-          {/* Header Actions */}
-          <div className="admin-header-actions">
-            <button className="admin-header-btn" title="Notifications">
-              <i className="fas fa-bell"></i>
-              {dashboardData?.activity?.pendingApprovals > 0 && (
-                <span className="admin-header-btn-badge"></span>
+        <nav className="p-4 space-y-1">
+          {navItems.map(item => (
+            <button
+              key={item.id}
+              onClick={() => { navigate(item.path); setActiveTab(item.id); }}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === item.id
+                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                : 'text-gray-700 hover:bg-gray-100'
+                }`}
+            >
+              <item.icon size={20} />
+              <span className="font-medium">{item.label}</span>
+              {item.badge > 0 && (
+                <span className="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full">{item.badge}</span>
               )}
             </button>
-            
-            <button 
-              className="admin-header-btn" 
-              title="Settings"
-              onClick={() => handleNavigation('system', '/admin/settings')}
-            >
-              <i className="fas fa-cog"></i>
-            </button>
+          ))}
+        </nav>
 
-            {/* User Menu */}
-            <div className="admin-header-user">
-              <div className="admin-header-user-avatar">
-                {userData?.username?.[0]?.toUpperCase() || 'A'}
-              </div>
-              <div className="admin-header-user-info">
-                <div className="admin-header-user-name">
-                  {userData?.username || currentUser?.email}
-                </div>
-                <div className="admin-header-user-role">Administrator</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* SIDEBAR */}
-      <aside className="admin-sidebar">
-        <div className="admin-sidebar-inner">
-          {/* Main Navigation */}
-          <nav className="admin-nav-section">
-            <div className="admin-nav-title">Main Menu</div>
-            <ul className="admin-nav-list">
-              <li className="admin-nav-item">
-                <a 
-                  href="#"
-                  className={`admin-nav-link ${activeTab === 'overview' ? 'active' : ''}`}
-                  onClick={(e) => { e.preventDefault(); handleNavigation('overview', '/admin'); }}
-                >
-                  <span className="admin-nav-icon">
-                    <i className="fas fa-chart-line"></i>
-                  </span>
-                  <span className="admin-nav-text">Overview</span>
-                </a>
-              </li>
-              
-              <li className="admin-nav-item">
-                <a 
-                  href="#"
-                  className={`admin-nav-link ${activeTab === 'campaigns' ? 'active' : ''}`}
-                  onClick={(e) => { e.preventDefault(); handleNavigation('campaigns', '/admin/campaigns'); }}
-                >
-                  <span className="admin-nav-icon">
-                    <i className="fas fa-clipboard-list"></i>
-                  </span>
-                  <span className="admin-nav-text">Campaigns</span>
-                  {dashboardData?.campaigns?.total > 0 && (
-                    <span className="admin-nav-badge">
-                      {dashboardData.campaigns.total}
-                    </span>
-                  )}
-                </a>
-              </li>
-              
-              <li className="admin-nav-item">
-                <a 
-                  href="#"
-                  className={`admin-nav-link ${activeTab === 'pending' ? 'active' : ''}`}
-                  onClick={(e) => { 
-                    e.preventDefault(); 
-                    fetchPendingCampaigns();
-                    setActiveTab('pending');
-                  }}
-                >
-                  <span className="admin-nav-icon">
-                    <i className="fas fa-hourglass-half"></i>
-                  </span>
-                  <span className="admin-nav-text">Pending Approvals</span>
-                  {dashboardData?.campaigns?.pending > 0 && (
-                    <span className="admin-nav-badge">
-                      {dashboardData.campaigns.pending}
-                    </span>
-                  )}
-                </a>
-              </li>
-              
-              <li className="admin-nav-item">
-                <a 
-                  href="#"
-                  className={`admin-nav-link ${activeTab === 'users' ? 'active' : ''}`}
-                  onClick={(e) => { e.preventDefault(); handleNavigation('users', '/admin/users'); }}
-                >
-                  <span className="admin-nav-icon">
-                    <i className="fas fa-users"></i>
-                  </span>
-                  <span className="admin-nav-text">Users</span>
-                  {dashboardData?.users?.total > 0 && (
-                    <span className="admin-nav-badge">
-                      {dashboardData.users.total}
-                    </span>
-                  )}
-                </a>
-              </li>
-              
-              <li className="admin-nav-item">
-                <a 
-                  href="#"
-                  className={`admin-nav-link ${activeTab === 'analytics' ? 'active' : ''}`}
-                  onClick={(e) => { e.preventDefault(); handleNavigation('analytics', '/admin/analytics'); }}
-                >
-                  <span className="admin-nav-icon">
-                    <i className="fas fa-chart-bar"></i>
-                  </span>
-                  <span className="admin-nav-text">Analytics</span>
-                </a>
-              </li>
-            </ul>
-          </nav>
-
-          {/* System Menu */}
-          <nav className="admin-nav-section">
-            <div className="admin-nav-title">System</div>
-            <ul className="admin-nav-list">
-              <li className="admin-nav-item">
-                <a 
-                  href="#"
-                  className={`admin-nav-link ${activeTab === 'system' ? 'active' : ''}`}
-                  onClick={(e) => { e.preventDefault(); handleNavigation('system', '/admin/settings'); }}
-                >
-                  <span className="admin-nav-icon">
-                    <i className="fas fa-cog"></i>
-                  </span>
-                  <span className="admin-nav-text">Settings</span>
-                </a>
-              </li>
-              
-              <li className="admin-nav-item">
-                <a 
-                  href="#"
-                  className="admin-nav-link"
-                  onClick={(e) => { e.preventDefault(); handleLogout(); }}
-                >
-                  <span className="admin-nav-icon">
-                    <i className="fas fa-sign-out-alt"></i>
-                  </span>
-                  <span className="admin-nav-text">Logout</span>
-                </a>
-              </li>
-            </ul>
-          </nav>
+        <div className="absolute bottom-0 w-full p-4 border-t">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 transition-all"
+          >
+            <LogOut size={20} />
+            <span className="font-medium">Logout</span>
+          </button>
         </div>
       </aside>
 
-      {/* Mobile Sidebar Overlay */}
-      {sidebarOpen && (
-        <div 
-          className="admin-sidebar-overlay" 
-          onClick={() => setSidebarOpen(false)}
-        ></div>
-      )}
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Top Header */}
+        <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+          <div className="flex items-center justify-between px-6 py-4">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden"
+              >
+                <Menu size={24} />
+              </button>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                <input
+                  type="text"
+                  placeholder="Search campaigns, users..."
+                  className="pl-10 pr-4 py-2 w-80 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
 
-      {/* MAIN CONTENT */}
-      <main className="admin-main">
-        <div className="admin-main-inner">
-          {/* Render content based on active tab */}
-          {activeTab === 'overview' && (
-            <OverviewTab 
-              dashboardData={dashboardData} 
-              fetchDashboardData={fetchDashboardData}
-              onNavigate={handleNavigation}
-            />
-          )}
-          
-          {activeTab === 'campaigns' && (
-            <AdminCampaignManagement />
-          )}
-          
-          {activeTab === 'pending' && (
-            <PendingApprovalsTab 
-              campaigns={pendingCampaigns}
-              loading={pendingLoading}
-              onRefresh={fetchPendingCampaigns}
-            />
-          )}
-          
-          {activeTab === 'users' && (
-            <AdminUserManagement />
-          )}
-          
-          {activeTab === 'analytics' && (
-            <AdminSystemStats />
-          )}
-          
-          {activeTab === 'system' && (
-            <SettingsTab />
-          )}
-        </div>
-      </main>
+            <div className="flex items-center gap-4">
+              <button className="relative p-2 hover:bg-gray-100 rounded-xl">
+                <Bell size={22} />
+                {dashboardData?.pendingCount > 0 && (
+                  <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full"></span>
+                )}
+              </button>
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <p className="text-sm font-semibold text-gray-800">{userData?.username || 'Admin'}</p>
+                  <p className="text-xs text-gray-500">Administrator</p>
+                </div>
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+                  {userData?.username?.[0]?.toUpperCase() || 'A'}
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Page Content */}
+        <main className="flex-1 p-6 lg:p-8">
+          {activeTab === 'overview' && <AdminOverview data={dashboardData} />}
+          {activeTab === 'pending' && <AdminPendingApprovals />}
+          {activeTab === 'campaigns' && <AdminCampaignManagement />}
+          {activeTab === 'users' && <AdminUserManagement />}
+          {activeTab === 'analytics' && <AdminSystemStats />}
+          {activeTab === 'settings' && <div className="text-3xl font-bold">Settings Page (Coming Soon)</div>}
+        </main>
+      </div>
     </div>
-  );
-};
-
-// Overview Tab Component
-const OverviewTab = ({ dashboardData, fetchDashboardData, onNavigate }) => {
-  return (
-    <>
-      {/* Page Header */}
-      <div className="admin-page-header">
-        <h1 className="admin-page-title">
-          <span className="admin-page-title-icon">
-            <i className="fas fa-tachometer-alt"></i>
-          </span>
-          Dashboard Overview
-        </h1>
-        <p className="admin-page-description">
-          Monitor your platform's performance and manage key operations
-        </p>
-        <div className="admin-page-actions">
-          <button className="btn btn-primary" onClick={fetchDashboardData}>
-            <i className="fas fa-sync-alt"></i>
-            Refresh Data
-          </button>
-          <button className="btn btn-outline">
-            <i className="fas fa-download"></i>
-            Export Report
-          </button>
-        </div>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="admin-stats-grid">
-        {/* Total Campaigns */}
-        <div 
-          className="admin-stat-card"
-          onClick={() => onNavigate('campaigns', '/admin/campaigns')}
-          style={{ cursor: 'pointer' }}
-        >
-          <div className="admin-stat-card-header">
-            <div className="admin-stat-card-icon">
-              <i className="fas fa-clipboard-list"></i>
-            </div>
-            <div className="admin-stat-card-trend up">
-              <i className="fas fa-arrow-up"></i> 12%
-            </div>
-          </div>
-          <div className="admin-stat-card-body">
-            <div className="admin-stat-card-label">Total Campaigns</div>
-            <div className="admin-stat-card-value">
-              {dashboardData?.campaigns?.total || 0}
-            </div>
-          </div>
-          <div className="admin-stat-card-footer">
-            <i className="fas fa-check-circle"></i>
-            {dashboardData?.campaigns?.active || 0} Active
-          </div>
-        </div>
-
-        {/* Pending Approvals */}
-        <div 
-          className="admin-stat-card variant-orange"
-          onClick={() => onNavigate('pending', '/admin')}
-          style={{ cursor: 'pointer' }}
-        >
-          <div className="admin-stat-card-header">
-            <div className="admin-stat-card-icon">
-              <i className="fas fa-hourglass-half"></i>
-            </div>
-            <div className="admin-stat-card-trend">
-              <i className="fas fa-clock"></i> Needs attention
-            </div>
-          </div>
-          <div className="admin-stat-card-body">
-            <div className="admin-stat-card-label">Pending Approvals</div>
-            <div className="admin-stat-card-value">
-              {dashboardData?.activity?.pendingApprovals || 0}
-            </div>
-          </div>
-          <div className="admin-stat-card-footer">
-            <i className="fas fa-exclamation-triangle"></i>
-            Requires review
-          </div>
-        </div>
-
-        {/* Total Users */}
-        <div 
-          className="admin-stat-card variant-green"
-          onClick={() => onNavigate('users', '/admin/users')}
-          style={{ cursor: 'pointer' }}
-        >
-          <div className="admin-stat-card-header">
-            <div className="admin-stat-card-icon">
-              <i className="fas fa-users"></i>
-            </div>
-            <div className="admin-stat-card-trend up">
-              <i className="fas fa-arrow-up"></i> 8%
-            </div>
-          </div>
-          <div className="admin-stat-card-body">
-            <div className="admin-stat-card-label">Total Users</div>
-            <div className="admin-stat-card-value">
-              {dashboardData?.users?.total || 0}
-            </div>
-          </div>
-          <div className="admin-stat-card-footer">
-            <i className="fas fa-user-plus"></i>
-            25 New this week
-          </div>
-        </div>
-
-        {/* System Status */}
-        <div className="admin-stat-card variant-purple">
-          <div className="admin-stat-card-header">
-            <div className="admin-stat-card-icon">
-              <i className="fas fa-server"></i>
-            </div>
-            <div className="admin-stat-card-trend up">
-              <i className="fas fa-check"></i> Healthy
-            </div>
-          </div>
-          <div className="admin-stat-card-body">
-            <div className="admin-stat-card-label">System Status</div>
-            <div className="admin-stat-card-value" style={{ fontSize: '1.5rem' }}>
-              All Systems Go
-            </div>
-          </div>
-          <div className="admin-stat-card-footer">
-            <i className="fas fa-clock"></i>
-            Updated: {new Date().toLocaleTimeString()}
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="card">
-        <div className="card-header">
-          <h3 className="card-title">
-            <i className="fas fa-bolt"></i> Quick Actions
-          </h3>
-        </div>
-        <div className="card-body">
-          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-            <button 
-              className="btn btn-primary"
-              onClick={() => onNavigate('pending', '/admin')}
-            >
-              <i className="fas fa-clipboard-check"></i>
-              Review Pending Campaigns
-            </button>
-            <button 
-              className="btn btn-secondary"
-              onClick={() => onNavigate('analytics', '/admin/analytics')}
-            >
-              <i className="fas fa-chart-bar"></i>
-              View Analytics
-            </button>
-            <button 
-              className="btn btn-outline"
-              onClick={() => onNavigate('users', '/admin/users')}
-            >
-              <i className="fas fa-users"></i>
-              Manage Users
-            </button>
-            <button 
-              className="btn btn-outline"
-              onClick={() => onNavigate('system', '/admin/settings')}
-            >
-              <i className="fas fa-cog"></i>
-              System Settings
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Activity */}
-      <div className="card" style={{ marginTop: 'var(--spacing-xl)' }}>
-        <div className="card-header">
-          <h3 className="card-title">
-            <i className="fas fa-history"></i> Recent Activity
-          </h3>
-        </div>
-        <div className="card-body">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div className="alert alert-info">
-              <i className="fas fa-clipboard-list alert-icon"></i>
-              <div className="alert-content">
-                <div className="alert-title">New campaign submitted</div>
-                <div>2 minutes ago</div>
-              </div>
-            </div>
-            
-            <div className="alert alert-success">
-              <i className="fas fa-check-circle alert-icon"></i>
-              <div className="alert-content">
-                <div className="alert-title">Campaign approved</div>
-                <div>1 hour ago</div>
-              </div>
-            </div>
-            
-            <div className="alert alert-warning">
-              <i className="fas fa-exclamation-triangle alert-icon"></i>
-              <div className="alert-content">
-                <div className="alert-title">System maintenance scheduled</div>
-                <div>3 hours ago</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-};
-
-// Pending Approvals Tab Component
-const PendingApprovalsTab = ({ campaigns, loading, onRefresh }) => {
-  const [processingId, setProcessingId] = useState(null);
-
-  const handleApprove = async (campaignId) => {
-    if (!window.confirm('Are you sure you want to approve this campaign?')) return;
-
-    try {
-      setProcessingId(campaignId);
-      await adminService.approveCampaign(campaignId);
-      alert('Campaign approved successfully!');
-      onRefresh();
-    } catch (error) {
-      console.error('Error approving campaign:', error);
-      alert('Failed to approve campaign: ' + (error.error || error.message));
-    } finally {
-      setProcessingId(null);
-    }
-  };
-
-  const handleReject = async (campaignId) => {
-    const reason = prompt('Please provide a reason for rejection:');
-    if (!reason) return;
-
-    try {
-      setProcessingId(campaignId);
-      await adminService.rejectCampaign(campaignId, reason);
-      alert('Campaign rejected successfully!');
-      onRefresh();
-    } catch (error) {
-      console.error('Error rejecting campaign:', error);
-      alert('Failed to reject campaign: ' + (error.error || error.message));
-    } finally {
-      setProcessingId(null);
-    }
-  };
-
-  if (loading) {
-    return <LoadingSpinner message="Loading pending campaigns..." />;
-  }
-
-  return (
-    <>
-      <div className="admin-page-header">
-        <h1 className="admin-page-title">
-          <span className="admin-page-title-icon">
-            <i className="fas fa-hourglass-half"></i>
-          </span>
-          Pending Approvals
-        </h1>
-        <p className="admin-page-description">
-          Review and approve campaigns waiting for verification
-        </p>
-        <div className="admin-page-actions">
-          <button className="btn btn-primary" onClick={onRefresh} disabled={loading}>
-            <i className="fas fa-sync-alt"></i>
-            Refresh
-          </button>
-        </div>
-      </div>
-
-      {campaigns.length === 0 ? (
-        <div className="card">
-          <div className="card-body" style={{ textAlign: 'center', padding: '3rem' }}>
-            <i className="fas fa-check-circle" style={{ fontSize: '4rem', color: 'var(--secondary-green)', marginBottom: '1rem' }}></i>
-            <h3>All caught up!</h3>
-            <p>There are no pending campaigns to review at the moment.</p>
-          </div>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {campaigns.map(campaign => (
-            <div key={campaign.id} className="card">
-              <div className="card-body">
-                <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                  {campaign.imageUrl ? (
-                    <img 
-                      src={campaign.imageUrl} 
-                      alt={campaign.name}
-                      style={{ 
-                        width: '120px', 
-                        height: '90px', 
-                        objectFit: 'cover', 
-                        borderRadius: 'var(--radius-md)' 
-                      }}
-                    />
-                  ) : (
-                    <div style={{ 
-                      width: '120px', 
-                      height: '90px', 
-                      background: 'var(--bg-tertiary)', 
-                      borderRadius: 'var(--radius-md)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '2rem'
-                    }}>
-                      📋
-                    </div>
-                  )}
-                  
-                  <div>
-                    <h3 style={{ marginBottom: '0.5rem' }}>{campaign.name}</h3>
-                    <p style={{ color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-                      <strong>Creator:</strong> {campaign.creatorUsername || 'Unknown'}
-                    </p>
-                    <p style={{ color: 'var(--text-secondary)', marginBottom: '0' }}>
-                      <strong>Category:</strong> {campaign.category}
-                    </p>
-                  </div>
-                </div>
-
-                <p style={{ marginBottom: '1.5rem' }}>{campaign.description}</p>
-
-                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                  <button 
-                    className="btn btn-success"
-                    onClick={() => handleApprove(campaign.id)}
-                    disabled={processingId === campaign.id}
-                  >
-                    <i className="fas fa-check"></i>
-                    Approve
-                  </button>
-                  <button 
-                    className="btn btn-danger"
-                    onClick={() => handleReject(campaign.id)}
-                    disabled={processingId === campaign.id}
-                  >
-                    <i className="fas fa-times"></i>
-                    Reject
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </>
-  );
-};
-
-// Settings Tab Component
-const SettingsTab = () => {
-  return (
-    <>
-      <div className="admin-page-header">
-        <h1 className="admin-page-title">
-          <span className="admin-page-title-icon">
-            <i className="fas fa-cog"></i>
-          </span>
-          System Settings
-        </h1>
-        <p className="admin-page-description">
-          Configure and manage system preferences
-        </p>
-      </div>
-
-      <div className="card">
-        <div className="card-header">
-          <h3 className="card-title">General Settings</h3>
-        </div>
-        <div className="card-body">
-          <div className="form-group">
-            <label className="form-label">Platform Name</label>
-            <input type="text" className="form-input" defaultValue="Fundizen" />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Contact Email</label>
-            <input type="email" className="form-input" defaultValue="admin@fundizen.com" />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Approval Threshold (MYR)</label>
-            <input type="number" className="form-input" defaultValue="10000" />
-          </div>
-          <button className="btn btn-primary">
-            <i className="fas fa-save"></i>
-            Save Settings
-          </button>
-        </div>
-      </div>
-
-      <div className="card" style={{ marginTop: 'var(--spacing-xl)' }}>
-        <div className="card-header">
-          <h3 className="card-title">Security Settings</h3>
-        </div>
-        <div className="card-body">
-          <div className="form-check">
-            <input type="checkbox" className="form-check-input" id="twoFactor" />
-            <label className="form-check-label" htmlFor="twoFactor">
-              Enable two-factor authentication
-            </label>
-          </div>
-          <div className="form-check">
-            <input type="checkbox" className="form-check-input" id="emailNotif" defaultChecked />
-            <label className="form-check-label" htmlFor="emailNotif">
-              Email notifications for new campaigns
-            </label>
-          </div>
-          <div className="form-check">
-            <input type="checkbox" className="form-check-input" id="autoBackup" defaultChecked />
-            <label className="form-check-label" htmlFor="autoBackup">
-              Automatic daily backups
-            </label>
-          </div>
-        </div>
-      </div>
-    </>
   );
 };
 
