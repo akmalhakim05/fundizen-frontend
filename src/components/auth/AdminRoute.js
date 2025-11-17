@@ -1,3 +1,4 @@
+// src/routes/AdminRoute.js (or wherever it is)
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -14,9 +15,15 @@ const AdminRoute = ({ children }) => {
     return <Navigate to="/admin/login" replace />;
   }
 
-  const isAdmin = userData?.role === 'admin' || userData?.isAdmin;
-  
+  // FIXED: Accept both lowercase/uppercase and missing fields
+  const isAdmin = 
+    userData?.isAdmin === true || 
+    userData?.role === 'admin' || 
+    userData?.role === 'ADMIN' ||      // ← this is the most common case
+    userData?.role === 'Admin';
+
   if (!isAdmin) {
+    console.warn('AdminRoute: Access denied →', { userData }); // debug helper
     return <Navigate to="/admin/login" replace />;
   }
 

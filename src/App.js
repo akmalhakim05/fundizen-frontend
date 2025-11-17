@@ -6,9 +6,6 @@ import './styles/global.css';
 import './styles/admin-layout.css';
 import AdminLogin from './components/auth/AdminLogin';
 import AdminDashboard from './components/admin/AdminDashboard';
-import AdminCampaignManagement from './components/admin/AdminCampaignManagement';
-import AdminUserManagement from './components/admin/AdminUserManagement';
-import AdminSystemStats from './components/admin/AdminSystemStats';
 import AdminRoute from './components/auth/AdminRoute';
 
 function App() {
@@ -19,9 +16,19 @@ function App() {
           <Routes>
             <Route path="/admin/login" element={<AdminLogin />} />
             
-            {/* Main Admin Dashboard - handles overview and pending approvals */}
+            {/* Main Admin Dashboard - Overview */}
             <Route 
               path="/admin" 
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              } 
+            />
+            
+            {/* Pending Approvals */}
+            <Route 
+              path="/admin/pending" 
               element={
                 <AdminRoute>
                   <AdminDashboard />
@@ -52,16 +59,6 @@ function App() {
             {/* Analytics/System Stats */}
             <Route 
               path="/admin/analytics" 
-              element={
-                <AdminRoute>
-                  <AdminDashboard />
-                </AdminRoute>
-              } 
-            />
-            
-            {/* Settings */}
-            <Route 
-              path="/admin/settings" 
               element={
                 <AdminRoute>
                   <AdminDashboard />
