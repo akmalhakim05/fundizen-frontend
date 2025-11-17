@@ -4,8 +4,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { adminService } from '../../services/adminService';
 import LoadingSpinner from '../../common/LoadingSpinner';
-import ErrorMessage from '../../common/ErrorMessage';
-import campaignService from '../../services/campaignService';
 import AdminOverview from './tabs/AdminOverview';
 import AdminPendingApprovals from './tabs/AdminPendingApprovals';
 import AdminCampaignManagement from './AdminCampaignManagement';
@@ -13,7 +11,7 @@ import AdminUserManagement from './AdminUserManagement';
 import AdminSystemStats from './AdminSystemStats';
 import {
   LayoutDashboard, FileText, Users, Settings, BarChart3, LogOut,
-  Bell, Search, Menu, X
+  Bell, Search, Menu, X, ChevronDown
 } from 'lucide-react';
 
 const AdminDashboard = () => {
@@ -79,18 +77,18 @@ const AdminDashboard = () => {
     );
   }
 
-  if (loading) return <LoadingSpinner message="Loading dashboard..." />;
+if (loading) return <LoadingSpinner />;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50 flex font-inter">
       {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:inset-0`}>
-        <div className="flex items-center justify-between p-6 border-b">
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">F</div>
-            <h1 className="text-2xl font-bold text-gray-800">Fundizen Admin</h1>
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">F</div>
+            <h1 className="text-xl font-bold text-gray-900">Fundizen Admin</h1>
           </div>
-          <button onClick={() => setSidebarOpen(false)} className="lg:hidden">
+          <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-gray-500 hover:text-gray-700">
             <X size={24} />
           </button>
         </div>
@@ -100,66 +98,64 @@ const AdminDashboard = () => {
             <button
               key={item.id}
               onClick={() => { navigate(item.path); setActiveTab(item.id); }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === item.id
-                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
-                : 'text-gray-700 hover:bg-gray-100'
-                }`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left font-medium ${
+                activeTab === item.id
+                  ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
             >
               <item.icon size={20} />
-              <span className="font-medium">{item.label}</span>
+              <span>{item.label}</span>
               {item.badge > 0 && (
-                <span className="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full">{item.badge}</span>
+                <span className="ml-auto bg-red-500 text-white text-xs px-2.5 py-1 rounded-full font-semibold">
+                  {item.badge}
+                </span>
               )}
             </button>
           ))}
         </nav>
 
-        <div className="absolute bottom-0 w-full p-4 border-t">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 transition-all"
-          >
+        <div className="absolute bottom-0 w-full p-4 border-t border-gray-200">
+          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 transition-all font-medium">
             <LogOut size={20} />
-            <span className="font-medium">Logout</span>
+            <span>Logout</span>
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col ml-0 lg:ml-64">
         {/* Top Header */}
-        <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
           <div className="flex items-center justify-between px-6 py-4">
             <div className="flex items-center gap-4">
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="lg:hidden"
-              >
+              <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-gray-600">
                 <Menu size={24} />
               </button>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                 <input
                   type="text"
-                  placeholder="Search campaigns, users..."
-                  className="pl-10 pr-4 py-2 w-80 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Search campaigns, users, transactions..."
+                  className="pl-10 pr-4 py-2.5 w-96 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                 />
               </div>
             </div>
 
             <div className="flex items-center gap-4">
-              <button className="relative p-2 hover:bg-gray-100 rounded-xl">
-                <Bell size={22} />
+              <button className="relative p-2.5 hover:bg-gray-100 rounded-xl transition">
+                <Bell size={22} className="text-gray-600" />
                 {dashboardData?.pendingCount > 0 && (
-                  <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full"></span>
+                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full"></span>
                 )}
               </button>
-              <div className="flex items-center gap-3">
+
+              <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
                 <div className="text-right">
-                  <p className="text-sm font-semibold text-gray-800">{userData?.username || 'Admin'}</p>
+                  <p className="text-sm font-semibold text-gray-900">{userData?.username || 'Admin'}</p>
                   <p className="text-xs text-gray-500">Administrator</p>
                 </div>
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+                <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
                   {userData?.username?.[0]?.toUpperCase() || 'A'}
                 </div>
               </div>
@@ -168,13 +164,13 @@ const AdminDashboard = () => {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-6 lg:p-8">
+        <main className="flex-1 p-8 bg-gray-50">
           {activeTab === 'overview' && <AdminOverview data={dashboardData} />}
           {activeTab === 'pending' && <AdminPendingApprovals />}
           {activeTab === 'campaigns' && <AdminCampaignManagement />}
           {activeTab === 'users' && <AdminUserManagement />}
           {activeTab === 'analytics' && <AdminSystemStats />}
-          {activeTab === 'settings' && <div className="text-3xl font-bold">Settings Page (Coming Soon)</div>}
+          {activeTab === 'settings' && <div className="text-3xl font-bold text-gray-800">Settings (Coming Soon)</div>}
         </main>
       </div>
     </div>
