@@ -1,6 +1,6 @@
 // src/components/admin/tabs/AdminCampaignManagement.jsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { adminService } from '../../../services/adminService';
+import campaignService from '../../../services/campaignService';
 import LoadingSpinner from '../../../common/LoadingSpinner';
 import ErrorMessage from '../../../common/ErrorMessage';
 import { 
@@ -35,7 +35,7 @@ const AdminCampaignManagement = () => {
       if (apiFilters.status === 'all') delete apiFilters.status;
       if (apiFilters.category === 'all') delete apiFilters.category;
 
-      const response = await adminService.getAllCampaignsForAdmin(apiFilters);
+      const response = await campaignService.getAllCampaigns(apiFilters);
       setCampaigns(response.campaigns || []);
       setPagination(response.pagination || null);
     } catch (error) {
@@ -50,7 +50,7 @@ const AdminCampaignManagement = () => {
     if (selectedCampaigns.length === 0) return alert('Please select campaigns to approve');
     if (!window.confirm(`Approve ${selectedCampaigns.length} campaigns?`)) return;
     try {
-      const result = await adminService.bulkApproveCampaigns(selectedCampaigns);
+      const result = await campaignService.bulkApproveCampaigns(selectedCampaigns);
       setSelectedCampaigns([]);
       fetchCampaigns();
       alert(`Approved ${result.successCount}, ${result.failureCount} failed`);
@@ -65,7 +65,7 @@ const AdminCampaignManagement = () => {
     if (!reason) return;
     if (!window.confirm(`Reject ${selectedCampaigns.length} campaigns?`)) return;
     try {
-      const result = await adminService.bulkRejectCampaigns(selectedCampaigns, reason);
+      const result = await campaignService.bulkRejectCampaigns(selectedCampaigns, reason);
       setSelectedCampaigns([]);
       fetchCampaigns();
       alert(`Rejected ${result.successCount}, ${result.failureCount} failed`);
@@ -76,7 +76,7 @@ const AdminCampaignManagement = () => {
 
   const handleApproveCampaign = async (id) => {
     try {
-      await adminService.approveCampaign(id);
+      await campaignService.approveCampaign(id);
       fetchCampaigns();
       alert('Campaign approved!');
     } catch (err) {
@@ -88,7 +88,7 @@ const AdminCampaignManagement = () => {
     const reason = prompt('Reason (optional):');
     if (reason === null) return;
     try {
-      await adminService.rejectCampaign(id, reason || '');
+      await campaignService.rejectCampaign(id, reason || '');
       fetchCampaigns();
       alert('Campaign rejected!');
     } catch (err) {
@@ -108,7 +108,7 @@ const AdminCampaignManagement = () => {
 
   const handleExport = async () => {
     try {
-      await adminService.exportData('campaigns', 'csv');
+      await campaignService.exportCampaignsAsCSV();
       alert('Exported successfully!');
     } catch (err) {
       alert('Export failed: ' + (err.error || err.message));

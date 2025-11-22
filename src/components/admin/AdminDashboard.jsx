@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { adminService } from '../../services/adminService';
+import adminService from '../../services/adminService';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import AdminOverview from './tabs/AdminOverview';
 import AdminPendingApprovals from './tabs/AdminPendingApprovals';
