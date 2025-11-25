@@ -5,14 +5,37 @@ import LoadingSpinner from '../../../common/LoadingSpinner';
 import ErrorMessage from '../../../common/ErrorMessage';
 import { 
   DollarSign, Eye, CheckCircle, XCircle, FileText, 
-  Download, Filter, ChevronLeft, ChevronRight, Search 
+  ChevronLeft, ChevronRight, Filter, TrendingUp, BarChart3,
+  LayoutDashboard, Calendar, Users
 } from 'lucide-react';
+
+const CATEGORIES = [
+  'Healthcare', 'Education', 'Technology', 'Environment', 'Community',
+  'Arts & Culture', 'Sports', 'Emergency', 'Animals', 'Memorial', 'Nonprofit', 'Others'
+];
+
+const STATUS_OPTIONS = [
+  { value: 'all', label: 'All Status' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'approved', label: 'Approved' },
+  { value: 'public', label: 'Public' },
+  { value: 'rejected', label: 'Rejected' },
+  { value: 'completed', label: 'Completed' },
+];
+
+const STATUS_STYLES = {
+  pending:   { bg: '#FFFBEB', border: '#F59E0B', color: '#92400E' },
+  approved:  { bg: '#ECFDF5', border: '#10B981', color: '#065F46' },
+  public:    { bg: '#DBEAFE', border: '#2563EB', color: '#1E40AF' },
+  rejected:  { bg: '#FEE2E2', border: '#EF4444', color: '#991B1B' },
+  completed: { bg: '#F3E8FF', border: '#7C3AED', color: '#6B21A8' },
+};
 
 const AdminCampaignManagement = () => {
   const [campaigns, setCampaigns] = useState([]);
+  const [statistics, setStatistics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedCampaigns, setSelectedCampaigns] = useState([]);
   const [filters, setFilters] = useState({
     page: 0,
     size: 20,
@@ -38,80 +61,36 @@ const AdminCampaignManagement = () => {
       const response = await campaignService.getAllCampaigns(apiFilters);
       setCampaigns(response.campaigns || []);
       setPagination(response.pagination || null);
-    } catch (error) {
-      console.error('Error fetching campaigns:', error);
+      setStatistics(response.statistics || null);
+    } catch (err) {
+      console.error('Error fetching campaigns:', err);
       setError('Failed to load campaigns');
     } finally {
       setLoading(false);
     }
   }, [filters]);
 
-  const handleBulkApprove = async () => {
-    if (selectedCampaigns.length === 0) return alert('Please select campaigns to approve');
-    if (!window.confirm(`Approve ${selectedCampaigns.length} campaigns?`)) return;
-    try {
-      const result = await campaignService.bulkApproveCampaigns(selectedCampaigns);
-      setSelectedCampaigns([]);
-      fetchCampaigns();
-      alert(`Approved ${result.successCount}, ${result.failureCount} failed`);
-    } catch (err) {
-      alert('Failed to approve: ' + (err.error || err.message));
-    }
-  };
-
-  const handleBulkReject = async () => {
-    if (selectedCampaigns.length === 0) return alert('Please select campaigns to reject');
-    const reason = prompt('Reason for rejection:');
-    if (!reason) return;
-    if (!window.confirm(`Reject ${selectedCampaigns.length} campaigns?`)) return;
-    try {
-      const result = await campaignService.bulkRejectCampaigns(selectedCampaigns, reason);
-      setSelectedCampaigns([]);
-      fetchCampaigns();
-      alert(`Rejected ${result.successCount}, ${result.failureCount} failed`);
-    } catch (err) {
-      alert('Failed to reject: ' + (err.error || err.message));
-    }
-  };
-
   const handleApproveCampaign = async (id) => {
+    if (!window.confirm('Approve this campaign?')) return;
     try {
       await campaignService.approveCampaign(id);
       fetchCampaigns();
-      alert('Campaign approved!');
+      alert('Campaign approved successfully!');
     } catch (err) {
-      alert('Failed: ' + (err.error || err.message));
+      alert('Failed to approve: ' + (err.message || 'Unknown error'));
     }
   };
 
   const handleRejectCampaign = async (id) => {
-    const reason = prompt('Reason (optional):');
+    const reason = prompt('Reason for rejection (optional):');
     if (reason === null) return;
+    if (!window.confirm('Reject this campaign?')) return;
     try {
-      await campaignService.rejectCampaign(id, reason || '');
+      await campaignService.rejectCampaign(id, reason || 'No reason provided');
       fetchCampaigns();
-      alert('Campaign rejected!');
+      alert('Campaign rejected.');
     } catch (err) {
-      alert('Failed: ' + (err.error || err.message));
-    }
-  };
-
-  const handleSelectCampaign = (id, checked) => {
-    setSelectedCampaigns(prev => 
-      checked ? [...prev, id] : prev.filter(x => x !== id)
-    );
-  };
-
-  const handleSelectAll = (checked) => {
-    setSelectedCampaigns(checked ? campaigns.map(c => c.id) : []);
-  };
-
-  const handleExport = async () => {
-    try {
-      await campaignService.exportCampaignsAsCSV();
-      alert('Exported successfully!');
-    } catch (err) {
-      alert('Export failed: ' + (err.error || err.message));
+      alert('Failed to reject: ' + (err.message || 'Unknown error'));
     }
   };
 
@@ -126,75 +105,111 @@ const AdminCampaignManagement = () => {
 
   return (
     <div className="admin-campaign-management">
-      {/* Header */}
-      <div className="campaign-header">
-        <h2><FileText size={36} /> Campaign Management</h2>
-        <p>Review, approve, and manage all fundraising campaigns</p>
+      {/* Modern Top Header */}
+      <div className="page-header">
+        <div className="header-content">
+          <div className="header-title">
+            <LayoutDashboard size={40} className="title-icon" />
+            <div>
+              <h1>Campaign Management</h1>
+              <p>Review, approve, and monitor all fundraising campaigns</p>
+            </div>
+          </div>
+          <div className="header-meta">
+            <div className="meta-item">
+              <Calendar size={20} />
+              <span>{new Date().toLocaleDateString('en-MY', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Controls */}
-      <div className="campaign-controls">
+      {/* Statistics Overview */}
+      {statistics && (
+        <div className="stats-grid">
+          <div className="stat-card main">
+            <TrendingUp size={32} />
+            <div>
+              <div className="stat-number">{statistics.totalCampaigns}</div>
+              <div className="stat-title">Total Campaigns</div>
+            </div>
+          </div>
+
+          <div className="stat-card wide">
+            <BarChart3 size={32} />
+            <div className="stat-title">Campaigns by Status</div>
+            <div className="status-list">
+              {Object.entries(statistics.campaignsByStatus).map(([status, count]) => (
+                <div key={status} className="status-row">
+                  <span className="status-dot" style={{ backgroundColor: STATUS_STYLES[status]?.border || '#6B7280' }}></span>
+                  <span className="status-name">{status.charAt(0).toUpperCase() + status.slice(1)}</span>
+                  <span className="status-count">{count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="stat-card wide">
+            <div className="stat-title">Top Categories</div>
+            <div className="category-chart">
+              {Object.entries(statistics.campaignsByCategory)
+                .sort(([,a],[,b]) => b - a)
+                .slice(0, 6)
+                .map(([cat, count]) => {
+                  const max = Math.max(...Object.values(statistics.campaignsByCategory));
+                  const percentage = (count / max) * 100;
+                  return (
+                    <div key={cat} className="category-bar-item">
+                      <div className="bar-label">{cat}</div>
+                      <div className="bar-wrapper">
+                        <div 
+                          className="bar-fill" 
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                      <div className="bar-value">{count}</div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Filters Bar */}
+      <div className="filters-bar">
         <div className="filters-left">
-          <select value={filters.status} onChange={e => setFilters({...filters, status: e.target.value, page: 0})}>
-            <option value="all">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
-            <option value="active">Active</option>
-            <option value="rejected">Rejected</option>
-          </select>
+          <div className="filter-group">
+            <label>Status</label>
+            <select value={filters.status} onChange={e => setFilters({...filters, status: e.target.value, page: 0})}>
+              {STATUS_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
 
-          <select value={filters.category} onChange={e => setFilters({...filters, category: e.target.value, page: 0})}>
-            <option value="all">All Categories</option>
-            <option value="medical">Medical</option>
-            <option value="education">Education</option>
-            <option value="community">Community</option>
-            <option value="emergency">Emergency</option>
-            <option value="environment">Environment</option>
-            <option value="animals">Animals</option>
-          </select>
+          <div className="filter-group">
+            <label>Category</label>
+            <select value={filters.category} onChange={e => setFilters({...filters, category: e.target.value, page: 0})}>
+              <option value="all">All Categories</option>
+              {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+            </select>
+          </div>
 
-          <select value={filters.size} onChange={e => setFilters({...filters, size: +e.target.value, page: 0})}>
-            <option value={10}>10 per page</option>
-            <option value={20}>20 per page</option>
-            <option value={50}>50 per page</option>
-            <option value={100}>100 per page</option>
-          </select>
-
-          <button onClick={handleExport} className="export-btn">
-            <Download size={18} /> Export CSV
-          </button>
+          <div className="filter-group">
+            <label>Items per page</label>
+            <select value={filters.size} onChange={e => setFilters({...filters, size: +e.target.value, page: 0})}>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
         </div>
 
-        {selectedCampaigns.length > 0 && (
-          <div className="bulk-actions-bar">
-            <span className="selected-text">{selectedCampaigns.length} selected</span>
-            <button onClick={handleBulkApprove} className="bulk-btn approve">
-              <CheckCircle size={18} /> Bulk Approve
-            </button>
-            <button onClick={handleBulkReject} className="bulk-btn reject">
-              <XCircle size={18} /> Bulk Reject
-            </button>
-            <button onClick={() => setSelectedCampaigns([])} className="bulk-btn clear">
-              Clear
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* List Header */}
-      <div className="list-header">
-        <label className="select-all-label">
-          <input
-            type="checkbox"
-            checked={selectedCampaigns.length === campaigns.length && campaigns.length > 0}
-            onChange={e => handleSelectAll(e.target.checked)}
-          />
-          <span>Select All</span>
-        </label>
-        <span className="results-count">
-          {campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''} • 
-          {pagination && ` Page ${filters.page + 1} of ${pagination.totalPages}`}
-        </span>
+        <div className="results-info">
+          Showing {pagination ? `${filters.page * filters.size + 1}-${Math.min((filters.page + 1) * filters.size, pagination.totalElements)}` : campaigns.length} of {pagination?.totalElements || campaigns.length} campaigns
+        </div>
       </div>
 
       {/* Campaigns Grid */}
@@ -203,8 +218,6 @@ const AdminCampaignManagement = () => {
           <CampaignCard
             key={campaign.id}
             campaign={campaign}
-            isSelected={selectedCampaigns.includes(campaign.id)}
-            onSelect={handleSelectCampaign}
             onApprove={handleApproveCampaign}
             onReject={handleRejectCampaign}
             formatCurrency={formatCurrency}
@@ -215,14 +228,16 @@ const AdminCampaignManagement = () => {
 
       {/* Pagination */}
       {pagination && pagination.totalPages > 1 && (
-        <div className="pagination">
+        <div className="pagination-controls">
           <button
             onClick={() => setFilters(prev => ({...prev, page: Math.max(0, prev.page - 1)}))}
             disabled={filters.page === 0}
           >
             <ChevronLeft size={20} /> Previous
           </button>
-          <span>Page {filters.page + 1} of {pagination.totalPages}</span>
+          <span className="page-info">
+            Page <strong>{filters.page + 1}</strong> of <strong>{pagination.totalPages}</strong>
+          </span>
           <button
             onClick={() => setFilters(prev => ({...prev, page: Math.min(pagination.totalPages - 1, prev.page + 1)}))}
             disabled={filters.page >= pagination.totalPages - 1}
@@ -234,142 +249,378 @@ const AdminCampaignManagement = () => {
 
       <style jsx>{`
         .admin-campaign-management {
-          padding: 40px;
-          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+          padding: 32px 40px;
+          background: #F8FAFC;
           min-height: 100vh;
-          font-family: 'Inter', sans-serif;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
 
-        .campaign-header h2 {
-          font-size: 2.6rem;
-          font-weight: 800;
-          color: #0f172a;
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          margin: 0 0 8px 0;
-        }
-
-        .campaign-header p {
-          color: #64748b;
-          font-size: 1.1rem;
-        }
-
-        .campaign-controls {
+        /* Header */
+        .page-header {
           background: white;
-          padding: 28px;
           border-radius: 20px;
-          box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+          padding: 32px 40px;
+          margin-bottom: 32px;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+          border: 1px solid #E5E7EB;
+        }
+
+        .header-content {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          flex-wrap: wrap;
+        }
+
+        .header-title {
+          display: flex;
+          align-items: center;
           gap: 20px;
+        }
+
+        .title-icon {
+          color: #2563EB;
+        }
+
+        .header-title h1 {
+          font-size: 2.5rem;
+          font-weight: 800;
+          color: #111827;
+          margin: 0;
+        }
+
+        .header-title p {
+          color: #6B7280;
+          font-size: 1.1rem;
+          margin: 8px 0 0;
+        }
+
+        .header-meta {
+          display: flex;
+          gap: 32px;
+          align-items: center;
+        }
+
+        .meta-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          color: #4B5563;
+          font-size: 0.95rem;
+        }
+
+        .meta-item svg {
+          color: #6B7280;
+        }
+
+        /* Stats */
+        .stats-grid {
+          display: grid;
+          grid-template-columns: 1fr 1.5fr 1.5fr;
+          gap: 24px;
+          margin-bottom: 32px;
+        }
+
+        .stat-card {
+          background: white;
+          border-radius: 18px;
+          padding: 28px;
+          box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+          border: 1px solid #E5E7EB;
+          display: flex;
+          align-items: center;
+          gap: 20px;
+        }
+
+        .stat-card.main {
+          background: linear-gradient(135deg, #2563EB, #3B82F6);
+          color: white;
+        }
+
+        .stat-card.main svg {
+          color: rgba(255,255,255,0.9);
+        }
+
+        .stat-number {
+          font-size: 3.5rem-font;
+          font-weight: 900;
+          margin-bottom: 4px;
+        }
+
+        .stat-title {
+          font-size: 1.05rem;
+          font-weight: 600;
+          opacity: 0.9;
+        }
+
+        .status-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          margin-top: 16px;
+          width: 100%;
+        }
+
+        .status-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          font-size: 0.95rem;
+        }
+
+        .status-dot {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+        }
+
+        .status-name {
+          color: #374151;
+          font-weight: 500;
+        }
+
+        .status-count {
+          font-weight: 700;
+          color: #111827;
+        }
+
+        .category-chart {
+          margin-top: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+        }
+
+        .category-bar-item {
+          display: grid;
+          grid-template-columns: 120px 1fr 50px;
+          align-items: center;
+          gap: 12px;
+          font-size: 0.95rem;
+        }
+
+        .bar-label {
+          font-weight: 600;
+          color: #4B5563;
+        }
+
+        .bar-wrapper {
+          height: 8px;
+          background: #E5E7EB;
+          border-radius: 4px;
+          overflow: hidden;
+        }
+
+        .bar-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #2563EB, #10B981);
+          border-radius: 4px;
+          transition: width 0.7s ease;
+        }
+
+        .bar-value {
+          font-weight: 700;
+          text-align: right;
+          color: #111827;
+        }
+
+        /* Filters */
+        .filters-bar {
+          background: white;
+          border-radius: 18px;
+          padding: 24px 32px;
+          box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+          border: 1px solid #E5E7EB;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
           margin-bottom: 32px;
         }
 
         .filters-left {
           display: flex;
-          gap: 16px;
-          flex-wrap: wrap;
-          align-items: center;
+          gap: 24px;
+          align-items: end;
         }
 
-        .filters-left select, .export-btn {
-          padding: 12px 18px;
-          border-radius: 14px;
-          border: 1.5px solid #e2e8f0;
-          background: white;
-          font-weight: 500;
-        }
-
-        .export-btn {
-          background: #1e6cff;
-          color: white;
-          border: none;
+        .filter-group {
           display: flex;
-          align-items: center;
+          flex-direction: column;
           gap: 8px;
-          cursor: pointer;
         }
 
-        .bulk-actions-bar {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          background: #f8fafc;
-          padding: 12px 20px;
-          border-radius: 16px;
-        }
-
-        .selected-text {
+        .filter-group label {
+          font-size: 0.9rem;
           font-weight: 600;
-          color: #475569;
+          color: #374151;
         }
 
-        .bulk-btn {
-          padding: 10px 18px;
+        .filter-group select {
+          padding: 12px 16px;
+          border: 1.5px solid #D1D5DB;
           border-radius: 12px;
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          border: none;
-          cursor: pointer;
+          background: white;
+          font-size: 0.95rem;
+          min-width: 180px;
+          transition: all 0.2s;
         }
 
-        .bulk-btn.approve { background: #10b981; color: white; }
-        .bulk-btn.reject { background: #ef4444; color: white; }
-        .bulk-btn.clear { background: #64748b; color: white; }
-
-        .list-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 24px;
-          padding: 0 8px;
+        .filter-group select:focus {
+          outline: none;
+          border-color: #2563EB;
+          box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
         }
 
-        .select-all-label {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          font-weight: 600;
-        }
-
-        .results-count {
-          color: #64748b;
+        .results-info {
+          color: #6B7280;
           font-weight: 500;
         }
 
+        /* Grid & Cards */
         .campaigns-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
           gap: 28px;
-          margin-bottom: 40px;
+          margin-bottom: 48px;
         }
 
-        .admin-campaign-card {
+        /* Pagination */
+        .pagination-controls {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 32px;
+          font-size: 1rem;
+          font-weight: 600;
+        }
+
+        .pagination-controls button {
+          padding: 12px 28px;
+          background: #2563EB;
+          color: white;
+          border: none;
+          border-radius:  16px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          cursor: pointer;
+          transition: all 0.3s;
+        }
+
+        .pagination-controls button:hover:not(:disabled) {
+          background: #1D4ED8;
+          transform: translateY(-2px);
+        }
+
+        .pagination-controls button:disabled {
+          background: #9CA3AF;
+          cursor: not-allowed;
+        }
+
+        .page-info {
+          color: #374151;
+        }
+
+        @850px {
+          .stats-grid { grid-template-columns: 1fr; }
+          .header-content { flex-direction: column; align-items: flex-start; gap: 20px; }
+          .header-meta { justify-content: flex-start; }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+/* Reusable Campaign Card – Clean & Modern */
+const CampaignCard = ({ campaign, onApprove, onReject, formatCurrency, formatDate }) => {
+  const progress = campaign.completionPercentage || 0;
+  const circumference = 2 * Math.PI * 42;
+  const offset = circumference - (progress / 100) * circumference;
+
+  return (
+    <div className="campaign-card">
+      <div className="card-header">
+        <div className="campaign-id">#{campaign.id.slice(-8)}</div>
+        <div className="status-badge" style={{
+          backgroundColor: STATUS_STYLES[campaign.status]?.bg || '#F3F4F6',
+          color: STATUS_STYLES[campaign.status]?.color || '#374151',
+          border: `2px solid ${STATUS_STYLES[campaign.status]?.border || '#D1D5DB'}`
+        }}>
+          {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
+        </div>
+      </div>
+
+      {campaign.imageUrl ? (
+        <img src={campaign.imageUrl} alt={campaign.name} className="thumbnail" />
+      ) : (
+        <div className="thumbnail placeholder">
+          <FileText size={64} color="#9CA3AF" />
+        </div>
+      )}
+
+      <div className="card-content">
+        <h3 className="campaign-title">{campaign.name}</h3>
+        <div className="campaign-meta">
+          <span><strong>Creator:</strong> {campaign.username || 'Anonymous'}</span>
+          <span><strong>Category:</strong> {campaign.category}</span>
+        </div>
+
+        <div className="progress-section">
+          <div className="amount-info">
+            <div className="raised">{formatCurrency(campaign.raisedAmount)}</div>
+            <div className="goal">of {formatCurrency(campaign.goalAmount)}</div>
+          </div>
+          <div className="ring-container">
+            <svg width="100" height="100">
+              <circle cx="50" cy="50" r="42" stroke="#E5E7EB" strokeWidth="10" fill="none" />
+              <circle 
+                cx="50" cy="50" r="42" 
+                stroke="#10B981" 
+                strokeWidth="10" 
+                fill="none"
+                strokeLinecap="round"
+                strokeDasharray={circumference}
+                strokeDashoffset={offset}
+                transform="rotate(-90 50 50)"
+              />
+            </svg>
+            <div className="percentage">{Math.round(progress)}%</div>
+          </div>
+        </div>
+
+        <div className="card-actions">
+          <button className="btn-view">
+            <Eye size={18} /> View Details
+          </button>
+          {campaign.status === 'pending' && (
+            <>
+              <button onClick={() => onApprove(campaign.id)} className="btn-approve">
+                <CheckCircle size={18} /> Approve
+              </button>
+              <button onClick={() => onReject(campaign.id)} className="btn-reject">
+                <XCircle size={18} /> Reject
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      <style jsx>{`
+        .campaign-card {
           background: white;
           border-radius: 20px;
           overflow: hidden;
-          box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-          border: 1px solid #e2e8f0;
-          transition: all 0.4s ease;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+          border: 1px solid #E5E7EB;
+          transition: all 0.35s ease;
         }
 
-        .admin-campaign-card:hover {
-          transform: translateY(-12px);
-          box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+        .campaign-card:hover {
+          transform: translateY(-10px);
+          box-shadow: 0 20px 40px rgba(0,0,0,0.12);
         }
 
-        .admin-campaign-card.selected {
-          border: 2px solid #1e6cff;
-          box-shadow: 0 0 0 4px rgba(30,108,255,0.15);
-        }
-
-        .campaign-card-header {
-          padding: 24px 28px 0;
+        .card-header {
+          padding: 20px 28px 0;
           display: flex;
           justify-content: space-between;
           align-items: center;
@@ -377,11 +628,12 @@ const AdminCampaignManagement = () => {
 
         .campaign-id {
           font-family: 'JetBrains Mono', monospace;
-          background: #f1f5f9;
-          padding: 6px 12px;
-          border-radius: 10px;
+          background: #F3F4F6;
+          color: #6B7280;
+          padding: 6px 14px;
+          border-radius: 12px;
           font-size: 0.85rem;
-          color: #64748b;
+          font-weight: 600;
         }
 
         .status-badge {
@@ -390,228 +642,119 @@ const AdminCampaignManagement = () => {
           font-size: 0.8rem;
           font-weight: 700;
           text-transform: uppercase;
-          letter-spacing: 0.8px;
+          letter-spacing: 0.5px;
         }
 
-        .status-badge.pending { background: #fff7ed; color: #c2410c; }
-        .status-badge.approved { background: #ecfdf5; color: #047857; }
-        .status-badge.active { background: #dbeafe; color: #1d4ed8; }
-        .status-badge.rejected { background: #fee2e2; color: #991b1b; }
-
-        .campaign-thumbnail-wrapper {
-          height: 240px;
-          overflow: hidden;
-          background: #f8fafc;
-        }
-
-        .campaign-thumbnail {
+        .thumbnail {
           width: 100%;
-          height: 100%;
+          height: 240px;
           object-fit: cover;
-          transition: transform 0.6s ease;
         }
 
-        .admin-campaign-card:hover .campaign-thumbnail {
-          transform: scale(1.1);
+        .thumbnail.placeholder {
+          background: #F9FAFB;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
-        .campaign-content {
+        .card-content {
           padding: 28px;
         }
 
-        .campaign-name {
+        .campaign-title {
           font-size: 1.5rem;
           font-weight: 700;
-          color: #0f172a;
-          margin: 0 0 12px 0;
+          color: #111827;
+          margin: 0 0 14px 0;
           line-height: 1.3;
         }
 
         .campaign-meta {
           display: flex;
-          gap: 20px;
-          margin-bottom: 16px;
-          color: #64748b;
+          flex-direction: column;
+          gap: 6px;
+          color: #6B7280;
           font-size: 0.95rem;
+          margin-bottom: 20px;
         }
 
         .campaign-meta strong {
-          color: #1e293b;
+          color: #374151;
         }
 
-        .progress-ring {
+        .progress-section {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin: 24px 0;
+        }
+
+        .amount-info .raised {
+          font-size: 1.8rem;
+          font-weight: 800;
+          color: #111827;
+        }
+
+        .amount-info .goal {
+          color: #9CA3AF;
+          font-size: 0.95rem;
+        }
+
+        .ring-container {
           position: relative;
-          width: 90px;
-          height: 90px;
-          margin-left: auto;
         }
 
-        .progress-ring circle {
-          cx: 45; cy: 45; r: 40;
-          fill: none;
-          stroke-width: 10;
-        }
-
-        .progress-ring .bg { stroke: #e2e8f0; }
-        .progress-ring .progress { 
-          stroke: #10b981; 
-          stroke-linecap: round; 
-          transform: rotate(-90deg); 
-          transform-origin: 45px 45px;
-          transition: stroke-dashoffset 0.6s ease;
-        }
-
-        .progress-text {
+        .percentage {
           position: absolute;
-          top: 50%; left: 50%;
+          top: 50%;
+          left: 50%;
           transform: translate(-50%, -50%);
           font-size: 1.3rem;
           font-weight: 800;
-          color: #0f172a;
+          color: #111827;
         }
 
-        .campaign-card-actions {
-          display: flex;
+        .card-actions {
+          display: grid;
+          grid-template-columns: ${campaign.status === 'pending' ? '1fr 1fr 1fr' : '1fr'};
           gap: 12px;
-          margin-top: 24px;
+          margin-top: 28px;
         }
 
-        .action-btn {
-          flex: 1;
-          padding: 14px;
-          border-radius: 16px;
+        .btn-view, .btn-approve, .btn-reject {
+          padding: 14px 16px;
+          border-radius: 14px;
           font-weight: 600;
           font-size: 0.95rem;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 10px;
-          transition: all 0.3s;
+          gap: 8px;
           border: none;
           cursor: pointer;
+          transition: all 0.3s;
         }
 
-        .action-btn.view { background: #f8fafc; color: #475569; }
-        .action-btn.approve { background: #10b981; color: white; }
-        .action-btn.reject { background: #ef4444; color: white; }
-
-        .action-btn:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+        .btn-view {
+          background: #F9FAFB;
+          color: #4B5563;
         }
 
-        .pagination {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          gap: 24px;
-          margin-top: 40px;
-          font-weight: 600;
-        }
-
-        .pagination button {
-          padding: 12px 24px;
-          border-radius: 16px;
-          background: #1e6cff;
+        .btn-approve {
+          background: #10B981;
           color: white;
-          border: none;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-weight: 600;
         }
 
-        .pagination button:disabled {
-          background: #94a3b8;
-          cursor: not-allowed;
+        .btn-reject {
+          background: #EF4444;
+          color: white;
         }
 
-        @media (max-width: 1024px) {
-          .campaign-controls { flex-direction: column; align-items: stretch; }
-          .filters-left { justify-content: center; }
-          .campaigns-grid { grid-template-columns: 1fr; }
-        }
+        .btn-view:hover { background: #E5E7EB; }
+        .btn-approve:hover { background: #059669; }
+        .btn-reject:hover { background: #DC2626; }
       `}</style>
-    </div>
-  );
-};
-
-const CampaignCard = ({ campaign, isSelected, onSelect, onApprove, onReject, formatCurrency, formatDate }) => {
-  const progress = campaign.completionPercentage || 0;
-  const circumference = 2 * Math.PI * 40;
-  const strokeDashoffset = circumference - (progress / 100) * circumference;
-
-  return (
-    <div className={`admin-campaign-card ${isSelected ? 'selected' : ''}`}>
-      <div className="campaign-card-header">
-        <span className="campaign-id">#{campaign.id}</span>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={e => onSelect(campaign.id, e.target.checked)}
-          />
-          <span className={`status-badge ${campaign.status}`}>{campaign.status}</span>
-        </label>
-      </div>
-
-      <div className="campaign-thumbnail-wrapper">
-        {campaign.imageUrl ? (
-          <img src={campaign.imageUrl} alt={campaign.name} className="campaign-thumbnail" />
-        ) : (
-          <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f1f5f9' }}>
-            <FileText size={80} color="#94a3b8" />
-          </div>
-        )}
-      </div>
-
-      <div className="campaign-content">
-        <h3 className="campaign-name">{campaign.name}</h3>
-        <div className="campaign-meta">
-          <span><strong>By:</strong> {campaign.creatorUsername || 'Unknown'}</span>
-          <span><strong>Category:</strong> {campaign.category}</span>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '20px 0' }}>
-          <div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0f172a' }}>
-              {formatCurrency(campaign.raisedAmount)}
-            </div>
-            <div style={{ color: '#64748b', fontSize: '0.95rem' }}>
-              of {formatCurrency(campaign.goalAmount)}
-            </div>
-          </div>
-
-          <div className="progress-ring">
-            <svg width="90" height="90">
-              <circle className="bg" cx="45" cy="45" r="40" />
-              <circle 
-                className="progress" 
-                cx="45" cy="45" r="40"
-                strokeDasharray={circumference}
-                strokeDashoffset={strokeDashoffset}
-              />
-            </svg>
-            <div className="progress-text">{progress.toFixed(0)}%</div>
-          </div>
-        </div>
-
-        <div className="campaign-card-actions">
-          <button className="action-btn view">
-            <Eye size={18} /> View Details
-          </button>
-          {campaign.status === 'pending' && (
-            <>
-              <button onClick={() => onApprove(campaign.id)} className="action-btn approve">
-                <CheckCircle size={18} /> Approve
-              </button>
-              <button onClick={() => onReject(campaign.id)} className="action-btn reject">
-                <XCircle size={18} /> Reject
-              </button>
-            </>
-          )}
-        </div>
-      </div>
     </div>
   );
 };

@@ -5,7 +5,7 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 import './styles/global.css';
 import './styles/admin-layout.css';
 import AdminLogin from './components/auth/AdminLogin';
-import AdminDashboard from './components/admin/AdminDashboard';
+import AdminDashboard from './components/AdminDashboard';
 import AdminRoute from './components/auth/AdminRoute';
 
 function App() {
@@ -46,6 +46,26 @@ function App() {
               } 
             />
             
+            {/* Donations Management */}
+            <Route 
+              path="/admin/donations" 
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              } 
+            />
+
+            {/* Foodbank Management */}
+            <Route 
+              path="/admin/foodbank" 
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              } 
+            />
+
             {/* User Management */}
             <Route 
               path="/admin/users" 
@@ -55,17 +75,7 @@ function App() {
                 </AdminRoute>
               } 
             />
-            
-            {/* Analytics/System Stats */}
-            <Route 
-              path="/admin/analytics" 
-              element={
-                <AdminRoute>
-                  <AdminDashboard />
-                </AdminRoute>
-              } 
-            />
-            
+          
             {/* Fallback to login */}
             <Route path="*" element={<AdminLogin />} />
           </Routes>

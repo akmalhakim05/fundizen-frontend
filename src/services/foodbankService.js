@@ -7,44 +7,37 @@ import api from './api';
  */
 const foodbankService = {
 
+  /**
+   * NEW: Unified Admin Food Bank Endpoint
+   * GET /api/admin/foodbank
+   */
+  getAdminFoodBankPage: async ({
+    page = 0,
+    size = 20,
+    sortBy = 'createdAt',
+    sortDir = 'desc',
+    status = 'all',
+    search = ''
+  } = {}) => {
+    try {
+      const response = await api.get('/admin/foodbank', {
+        params: {
+          page,
+          size,
+          sortBy,
+          sortDir,
+          status: status === 'all' ? undefined : status,
+          search: search || undefined
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch admin food bank page:', error);
+      throw error.response?.data || { message: 'Failed to load food bank data' };
+    }
+  },
+
   // ==================== LIST & DISCOVER FOOD ====================
-
-  /**
-   * 37. Get All Available Food (paginated)
-   * GET /api/foodbank/list?page=0&size=50&sortBy=createdAt&sortDir=desc&includeContributor=false
-   */
-  getFoodBankList: async (options = {}) => {
-    try {
-      const params = {
-        page: options.page ?? 0,
-        size: options.size ?? 50,
-        sortBy: options.sortBy || 'createdAt',
-        sortDir: options.sortDir || 'desc',
-        includeContributor: options.includeContributor ?? false,
-        ...options
-      };
-
-      const response = await api.get('/foodbank/list', { params });
-      return response.data;
-    } catch (error) {
-      console.error('Failed to fetch food bank list:', error);
-      throw error.response?.data || { message: 'Failed to load food bank items' };
-    }
-  },
-
-  /**
-   * 38. Get Food for Map (optimized markers)
-   * GET /api/foodbank/map
-   */
-  getFoodBankMapData: async () => {
-    try {
-      const response = await api.get('/foodbank/map');
-      return response.data;
-    } catch (error) {
-      console.error('Failed to fetch food bank map data:', error);
-      throw error.response?.data || { message: 'Failed to load map markers' };
-    }
-  },
 
   /**
    * 39. Get Food Bank by ID

@@ -9,7 +9,7 @@ const donationService = {
    */
   getAllDonations: async (filters = {}) => {
     try {
-      const response = await api.get('/donations', { params: filters });
+      const response = await api.get('/admin/donations', { params: filters });
       return response.data;
     } catch (error) {
       console.error('Error fetching all donations:', error);

@@ -2,12 +2,17 @@
 import React, { useState, useEffect } from 'react';
 import campaignService from '../../../services/campaignService';
 import LoadingSpinner from '../../../common/LoadingSpinner';
-import { CheckCircle, XCircle, Eye, FileText, Clock, Sparkles } from 'lucide-react';
+import { 
+  CheckCircle, XCircle, FileText, Clock, Sparkles, 
+  Calendar, Target, User, AlertCircle, ExternalLink 
+} from 'lucide-react';
 
 const AdminPendingApprovals = () => {
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState(null);
+  const [selectedCampaign, setSelectedCampaign] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchPending();
@@ -20,13 +25,14 @@ const AdminPendingApprovals = () => {
       setCampaigns(res.campaigns || []);
     } catch (err) {
       console.error('Failed to load pending campaigns:', err);
+      alert('Failed to load campaigns');
     } finally {
       setLoading(false);
     }
   };
 
   const handleApprove = async (id) => {
-    if (!window.confirm('Approve this campaign?')) return;
+    if (!window.confirm('Approve this campaign? It will go live immediately.')) return;
     setProcessingId(id);
     try {
       await campaignService.approveCampaign(id);
@@ -39,7 +45,7 @@ const AdminPendingApprovals = () => {
   };
 
   const handleReject = async (id) => {
-    const reason = prompt('Reason for rejection (optional):');
+    const reason = prompt('Reason for rejection (will be sent to creator):');
     if (reason === null) return;
     setProcessingId(id);
     try {
@@ -50,6 +56,23 @@ const AdminPendingApprovals = () => {
     } finally {
       setProcessingId(null);
     }
+  };
+
+  const openDocumentModal = (campaign) => {
+    setSelectedCampaign(campaign);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedCampaign(null);
+  };
+
+  // Determine if file is PDF or image
+  const getFileType = (url) => {
+    if (!url) return null;
+    const ext = url.split('.').pop().toLowerCase();
+    return ['pdf'].includes(ext) ? 'pdf' : ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext) ? 'image' : 'unknown';
   };
 
   if (loading) return <LoadingSpinner message="Loading pending campaigns..." />;
@@ -69,7 +92,7 @@ const AdminPendingApprovals = () => {
             <>
               <Clock size={20} /> 
               {campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''} 
-              need{campaigns.length !== 1 ? 's' : ''} your attention
+              pending approval
             </>
           )}
         </p>
@@ -86,68 +109,229 @@ const AdminPendingApprovals = () => {
         </div>
       )}
 
-      {/* Campaign Cards */}
-      {campaigns.length > 0 && (
-        <div className="pending-grid">
-          {campaigns.map(campaign => (
-            <div key={campaign.id} className="pending-card">
-              {/* Image */}
-              <div className="image-container">
-                {campaign.imageUrl ? (
-                  <img src={campaign.imageUrl} alt={campaign.name} className="campaign-image" />
-                ) : (
-                  <div className="placeholder-image">
-                    <FileText size={80} />
-                  </div>
-                )}
-              </div>
-
-              {/* Content */}
-              <div className="card-content">
-                <div className="card-header">
-                  <div>
-                    <h3 className="campaign-title">{campaign.name}</h3>
-                    <p className="campaign-meta">
-                      by <strong>{campaign.creatorUsername || 'Unknown'}</strong> • {campaign.category}
-                    </p>
-                  </div>
-                  <span className="status-badge">PENDING REVIEW</span>
+      {/* Campaign Cards Grid */}
+      <div className="pending-grid">
+        {campaigns.map(campaign => (
+          <div key={campaign.id} className="pending-card">
+            {/* Campaign Image */}
+            <div className="image-container">
+              {campaign.imageUrl ? (
+                <img src={campaign.imageUrl} alt={campaign.name} className="campaign-image" />
+              ) : (
+                <div className="placeholder-image">
+                  <FileText size={80} />
                 </div>
-
-                <p className="campaign-description">
-                  {campaign.description || 'No description provided.'}
-                </p>
-
-                <div className="action-buttons">
-                  <button
-                    onClick={() => handleApprove(campaign.id)}
-                    disabled={processingId === campaign.id}
-                    className="btn approve"
-                  >
-                    <CheckCircle size={20} />
-                    {processingId === campaign.id ? 'Approving...' : 'Approve'}
-                  </button>
-                  <button
-                    onClick={() => handleReject(campaign.id)}
-                    disabled={processingId === campaign.id}
-                    className="btn reject"
-                  >
-                    <XCircle size={20} />
-                    Reject
-                  </button>
-                  <button className="btn view">
-                    <Eye size={20} />
-                    View Details
-                  </button>
-                </div>
+              )}
+              <div className="campaign-id-badge">
+                ID: {campaign.id.slice(-8)}
               </div>
             </div>
-          ))}
+
+            {/* Card Content */}
+            <div className="card-content">
+              <div className="card-header">
+                <div>
+                  <h3 className="campaign-title">{campaign.name}</h3>
+                  <div className="meta-grid">
+                    <p><User size={16} /> <strong>{campaign.username}</strong></p>
+                    <p><Target size={16} /> RM{campaign.goalAmount.toLocaleString()}</p>
+                    <p><Calendar size={16} /> {new Date(campaign.startDate).toLocaleDateString()} → {new Date(campaign.endDate).toLocaleDateString()}</p>
+                  </div>
+                </div>
+                <span className="status-badge pending">PENDING REVIEW</span>
+              </div>
+
+              <p className="campaign-category">
+                <strong>Category:</strong> {campaign.category}
+              </p>
+
+              <p className="campaign-description">
+                {campaign.description || 'No description provided.'}
+              </p>
+
+              {/* Action Buttons */}
+              <div className="action-buttons">
+                <button
+                  onClick={() => handleApprove(campaign.id)}
+                  disabled={processingId === campaign.id}
+                  className="btn approve"
+                >
+                  <CheckCircle size={20} />
+                  {processingId === campaign.id ? 'Approving...' : 'Approve'}
+                </button>
+
+                <button
+                  onClick={() => handleReject(campaign.id)}
+                  disabled={processingId === campaign.id}
+                  className="btn reject"
+                >
+                  <XCircle size={20} />
+                  Reject
+                </button>
+
+                {campaign.documentUrl ? (
+                  <button
+                    onClick={() => openDocumentModal(campaign)}
+                    className="btn document"
+                  >
+                    <ExternalLink size={20} />
+                    View Document
+                  </button>
+                ) : (
+                  <button className="btn document missing" disabled>
+                    <AlertCircle size={20} />
+                    No Document
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Iframe Document Viewer Modal */}
+      {isModalOpen && selectedCampaign && selectedCampaign.documentUrl && (
+        <div className="modal-backdrop" onClick={closeModal}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={closeModal}>×</button>
+            
+            <div className="document-viewer-header">
+              <h2>{selectedCampaign.name}</h2>
+              <p>Document Preview • Campaign ID: {selectedCampaign.id.slice(-8)}</p>
+            </div>
+
+            <div className="document-container">
+              {getFileType(selectedCampaign.documentUrl) === 'pdf' ? (
+                <iframe
+                  src={selectedCampaign.documentUrl}
+                  title="Document Preview"
+                  className="document-iframe"
+                  frameBorder="0"
+                  allowFullScreen
+                />
+              ) : getFileType(selectedCampaign.documentUrl) === 'image' ? (
+                <img 
+                  src={selectedCampaign.documentUrl} 
+                  alt="Document" 
+                  className="document-image"
+                />
+              ) : (
+                <div className="document-fallback">
+                  <AlertCircle size={60} />
+                  <p>Preview not available for this file type.</p>
+                  <a 
+                    href={selectedCampaign.documentUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="btn download-btn"
+                  >
+                    <ExternalLink size={20} />
+                    Open in New Tab
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons inside Modal */}
+            <div className="modal-actions">
+              <button onClick={() => { handleApprove(selectedCampaign.id); closeModal(); }} className="btn approve large">
+                <CheckCircle size={24} /> Approve Campaign
+              </button>
+              <button 
+                onClick={() => {
+                  const reason = prompt('Reason for rejection:');
+                  if (reason !== null) {
+                    campaignService.rejectCampaign(selectedCampaign.id, reason || 'Rejected after document review');
+                    setCampaigns(prev => prev.filter(c => c.id !== selectedCampaign.id));
+                    closeModal();
+                  }
+                }} 
+                className="btn reject large"
+              >
+                <XCircle size={24} /> Reject Campaign
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* All Styles (2025 Premium Design) */}
+      {/* Updated Styles */}
       <style jsx>{`
+        /* ... (keep all your existing styles) ... */
+
+        /* New styles for iframe modal */
+        .document-viewer-header {
+          padding: 24px 32px 0;
+          text-align: center;
+          border-bottom: 1px solid #e2e8f0;
+        }
+
+        .document-viewer-header h2 {
+          font-size: 1.8rem;
+          margin: 0 0 8px 0;
+          color: #0f172a;
+        }
+
+        .document-viewer-header p {
+          color: #64748b;
+          font-size: 0.95rem;
+        }
+
+        .document-container {
+          height: 70vh;
+          min-height: 500px;
+          background: #f8fafc;
+          position: relative;
+        }
+
+        .document-iframe {
+          width: 100%;
+          height: 100%;
+          border: none;
+        }
+
+        .document-image {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          background: #000;
+        }
+
+        .document-fallback {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          height: 100%;
+          color: #64748b;
+          gap: 20px;
+        }
+
+        .modal-actions {
+          padding: 24px 32px;
+          display: flex;
+          gap: 16px;
+          border-top: 1px solid #e2e8f0;
+          background: white;
+        }
+
+        .modal-actions .btn.large {
+          flex: 1;
+          padding: 18px;
+          font-size: 1.1rem;
+        }
+
+        .download-btn {
+          background: #6366f1;
+          color: white;
+          padding: 14px 28px;
+          border-radius: 12px;
+          text-decoration: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+        }
+
         .admin-pending-approvals {
           padding: 40px;
           background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
@@ -220,7 +404,8 @@ const AdminPendingApprovals = () => {
           overflow: hidden;
           box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
           border: 1px solid #e2e8f0;
-          display: flex;
+          display: grid;
+          grid-template-columns: 420px 1fr;   /* Fixed image width on large screens */
           transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
@@ -230,24 +415,29 @@ const AdminPendingApprovals = () => {
         }
 
         .image-container {
-          width: 320px;
+          width: 100%;                 /* Full width on mobile, fixed on desktop */
+          aspect-ratio: 16 / 9;        /* Forces 1024×576 ratio */
+          position: relative;
+          overflow: hidden;
+          background: #f1f5f9;
           flex-shrink: 0;
         }
 
         .campaign-image {
           width: 100%;
           height: 100%;
-          object-fit: cover;
+          object-fit: cover;           /* Crop nicely if not exact ratio */
+          object-position: center;
           transition: transform 0.6s ease;
-        }
+        } 
 
         .pending-card:hover .campaign-image {
           transform: scale(1.08);
         }
 
         .placeholder-image {
-          width: 320px;
-          height: 280px;
+          width: 100%;
+          height: 100%;
           background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
           display: flex;
           align-items: center;
@@ -354,15 +544,187 @@ const AdminPendingApprovals = () => {
 
         @media (max-width: 1024px) {
           .pending-card {
-            flex-direction: column;
+              grid-template-columns: 1fr;
           }
           .image-container {
-            width: 100%;
-            height: 300px;
+              height: 280px;   /* fallback height on smaller screens */
           }
           .placeholder-image {
             width: 100%;
             height: 300px;
+          }
+        }
+
+        .meta-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+          margin: 12px 0;
+          font-size: 0.95rem;
+          color: #475569;
+        }
+
+        .meta-grid p {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin: 0;
+        }
+
+        .campaign-category {
+          background: #f0fdf4;
+          color: #166534;
+          padding: 6px 12px;
+          border-radius: 12px;
+          font-size: 0.9rem;
+          font-weight: 600;
+          display: inline-block;
+          margin: 12px 0;
+        }
+
+        .campaign-id-badge {
+          position: absolute;
+          top: 12px;
+          left: 12px;
+          background: rgba(0,0,0,0.7);
+          color: white;
+          padding: 4px 10px;
+          border-radius: 8px;
+          font-family: monospace;
+          font-size: 0.8rem;
+        }
+
+        .status-badge.pending {
+          background: linear-gradient(135deg, #fff7ed, #fed7aa);
+          color: #c2410c;
+        }
+
+        .btn.document {
+          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          color: white;
+        }
+
+        .btn.document.missing {
+          background: #e5e7eb;
+          color: #6b7280;
+          cursor: not-allowed;
+        }
+
+        .btn.document:hover:not(.missing) {
+          background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        }
+
+        /* Modal Styles */
+        .modal-backdrop {
+          position: fixed;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: rgba(0,0,0,0.75);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 9999;
+          padding: 20px;
+          backdrop-filter: blur(8px);
+        }
+
+        .modal-content {
+          position: relative;
+          max-width: 900px;
+          width: 100%;
+          max-height: 95vh;
+          overflow-y: auto;
+          border-radius: 16px;
+          background: white;
+          box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+        }
+
+        .modal-close {
+          position: absolute;
+          top: 16px;
+          right: 20px;
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          background: rgba(0,0,0,0.7);
+          color: white;
+          font-size: 28px;
+          border: none;
+          cursor: pointer;
+          z-index: 10;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        @media (max-width: 768px) {
+          .pending-card {
+            flex-direction: column;
+          }
+          .image-container {
+            height: 280px;
+          }
+          .action-buttons {
+            grid-template-columns: 1fr;
+          }
+          .meta-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        .btn.document {
+          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          color: white;
+        }
+
+        .modal-backdrop {
+          position: fixed;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: rgba(0,0,0,0.8);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 9999;
+          padding: 20px;
+          backdrop-filter: blur(10px);
+        }
+
+        .modal-content {
+          position: relative;
+          max-width: 1000px;
+          width: 100%;
+          max-height: 95vh;
+          border-radius: 20px;
+          background: white;
+          box-shadow: 0 30px 80px rgba(0,0,0,0.3);
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .modal-close {
+          position: absolute;
+          top: 16px;
+          right: 20px;
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          background: rgba(0,0,0,0.7);
+          color: white;
+          font-size: 32px;
+          border: none;
+          cursor: pointer;
+          z-index: 10;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        @media (max-width: 768px) {
+          .modal-actions {
+            flex-direction: column;
+          }
+          .document-container {
+            height: 60vh;
           }
         }
 

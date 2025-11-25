@@ -9,80 +9,35 @@ const statsService = {
   // ==================== CAMPAIGN STATS ====================
 
   /**
-   * 24. Get Campaign Statistics
-   * GET /api/stats/campaigns/{id}
+  * GET /api/stats/campaigns/{id}?includeAnalytics=true&days=30
    */
-  getCampaignStats: async (campaignId) => {
+  getCampaignStats: async (campaignId, days = 30) => {
     try {
-      const response = await api.get(`/stats/campaigns/${campaignId}`);
-      return response.data;
-    } catch (error) {
-      console.error(`Failed to fetch stats for campaign ${campaignId}:`, error);
-      throw error.response?.data || { message: 'Failed to load campaign statistics' };
-    }
-  },
-
-  /**
-   * 25. Get Campaign Analytics (with optional days)
-   * GET /api/stats/campaigns/{id}/analytics?days=30
-   */
-  getCampaignAnalytics: async (campaignId, days = 30) => {
-    try {
-      const response = await api.get(`/stats/campaigns/${campaignId}/analytics`, {
-        params: { days },
+      const response = await api.get(`/stats/campaigns/${campaignId}`, {
+        params: { includeAnalytics: true, days },
       });
-      return response.data;
+      return response.data.statistics; // backend returns { success: true, statistics: { ... } }
     } catch (error) {
-      console.error(`Failed to fetch analytics for campaign ${campaignId}:`, error);
-      throw error.response?.data || { message: 'Failed to load campaign analytics' };
+      console.error(`Failed to fetch full stats for campaign ${campaignId}:`, error);
+      throw error.response?.data || { message: 'Failed to load campaign statistics' };
     }
   },
 
   // ==================== PLATFORM & DONATION STATS ====================
 
   /**
-   * 26. Get Platform Donation Statistics
-   * GET /api/stats/donations/platform
-   */
-  getPlatformDonationStats: async () => {
-    try {
-      const response = await api.get('/stats/donations/platform');
-      return response.data;
-    } catch (error) {
-      console.error('Failed to fetch platform donation stats:', error);
-      throw error.response?.data || { message: 'Failed to load platform donation statistics' };
-    }
-  },
+   * GET /api/stats/donations?months=12
+  **/
 
-  /**
-   * 27. Get Top Donors for a Campaign
-   * GET /api/stats/donations/campaigns/{campaignId}/top-donors?limit=10
-   */
-  getTopDonors: async (campaignId, limit = 10) => {
+  getPlatformDonationStats: async (months = 12) => {
     try {
-      const response = await api.get(`/stats/donations/campaigns/${campaignId}/top-donors`, {
-        params: { limit },
-      });
-      return response.data;
-    } catch (error) {
-      console.error(`Failed to fetch top donors for campaign ${campaignId}:`, error);
-      throw error.response?.data || { message: 'Failed to load top donors' };
-    }
-  },
-
-  /**
-   * 28. Get Donation Trends (monthly)
-   * GET /api/stats/donations/trends?months=12
-   */
-  getDonationTrends: async (months = 12) => {
-    try {
-      const response = await api.get('/stats/donations/trends', {
+      const response = await api.get('/stats/donations', {
         params: { months },
       });
       return response.data;
     } catch (error) {
-      console.error('Failed to fetch donation trends:', error);
-      throw error.response?.data || { message: 'Failed to load donation trends' };
+      console.error('Failed to fetch consolidated donation stats:', error);
+      throw error.response?.data || { message: 'Failed to load platform donation statistics' };
     }
   },
 

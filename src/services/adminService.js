@@ -22,20 +22,6 @@ const adminService = {
     }
   },
 
-  /**
-   * Get detailed system statistics (charts, analytics, breakdowns)
-   * GET /api/admin/stats
-   */
-  getSystemStats: async () => {
-    try {
-      const response = await api.get('/admin/stats');
-      return response.data;
-    } catch (error) {
-      console.error('Failed to fetch system stats:', error);
-      throw error.response?.data || { message: 'Failed to load system analytics' };
-    }
-  },
-
   // ==================== REAL-TIME ACTIVITY ====================
 
   /**
